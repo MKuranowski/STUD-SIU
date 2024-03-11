@@ -1,0 +1,11 @@
+{
+    "build": {
+        "dockerfile": "Dockerfile",
+        "options": ["--build-arg", "WORKSPACE_FOLDER=${containerWorkspaceFolder}"]
+    },
+    "containerEnv": {
+        "DISPLAY": "${localEnv:DISPLAY}"
+    },
+    "postCreateCommand": ["sh", ".devcontainer/update_bashrc.sh"],
+    "runArgs": ["--net=host"]
+}
