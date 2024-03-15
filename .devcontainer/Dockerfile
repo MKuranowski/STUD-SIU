@@ -14,7 +14,7 @@ RUN apt-get install -qy --no-install-recommends \
     python3-rosdep \
     python3-rosinstall \
     python3-rosinstall-generator \
-    ros-noetic-desktop-full
+    ros-noetic-desktop
 RUN ["sh", "-c", "set -ex; . /opt/ros/noetic/setup.sh; rosdep init; rosdep update"]
 
 # The following is from prof's documentation, except that unnecessary packages were removed
@@ -22,7 +22,10 @@ RUN ["sh", "-c", "set -ex; . /opt/ros/noetic/setup.sh; rosdep init; rosdep updat
 RUN apt-get install -qy --no-install-recommends \
     qtbase5-dev \
     python3-tk \
-    python3-catkin-tools
+    python3-catkin-tools \
+    python3-pip
+
+RUN pip install tensorflow
 
 WORKDIR /opt/siu_ws/src
 RUN git clone --branch noetic-devel --depth 1 https://github.com/RCPRG-ROS-pkg/ros_tutorials
