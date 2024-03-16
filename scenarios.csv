@@ -1,6 +1,6 @@
-id,start_left,start_right,start_bottom,start_top,goal_x,goal_y
-1-biedronka,1430,1530,1007,932,190,815
-2-lidl,156,231,812,712,597,198
-3-groszek,605,663,250,198,1307,417
-4-lewiatan,1267,1342,410,310,1694,276
-5-dino,1657,1732,380,280,1535,969
+id,agents_no,start_left,start_right,start_bottom,start_top,goal_x,goal_y
+1-biedronka,1,1430,1530,1007,932,190,815
+2-lidl,1,156,231,812,712,597,198
+3-groszek,1,605,663,250,198,1307,417
+4-lewiatan,1,1267,1342,410,310,1694,276
+5-dino,1,1657,1732,380,280,1535,969
