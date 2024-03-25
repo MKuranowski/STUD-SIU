@@ -176,6 +176,7 @@ class EnvBase(ABC):
         while True:
             try:
                 self.try_reset_turtle_within_section(turtle_name, agent)
+                break
             except SpawnError:
                 pass
 
