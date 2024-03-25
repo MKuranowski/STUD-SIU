@@ -1,0 +1,10 @@
+[tool.pyright]
+strict = ["src"]
+stubPath = "typings"
+
+[tool.black]
+line-length = 99
+
+[tool.isort]
+profile = "black"
+line_length = 99
