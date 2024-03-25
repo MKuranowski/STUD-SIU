@@ -282,8 +282,8 @@ class EnvBase(ABC):
             speeds_y,
             penalties,
             distances_to_goal,
-            speeds_along_azimuth,
-            speeds_perpendicular_azimuth,
+            speeds_along_azimuth + 1,
+            speeds_perpendicular_azimuth + 1,
             occupancy,
         )
 
