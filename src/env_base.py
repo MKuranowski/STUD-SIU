@@ -11,7 +11,7 @@ import numpy.typing as npt
 import rospy
 from turtlesim.msg import Color, Pose
 from turtlesim.srv import SetPenRequest
-from TurtlesimSIU import ColorSensor, TurtlesimSIU
+from TurtlesimSIU.TurtlesimSIU import ColorSensor, TurtlesimSIU
 
 NDArrayFloat = npt.NDArray[np.float_]
 
