@@ -222,7 +222,7 @@ class EnvBase(ABC):
         if self.parameters.wait_after_move:
             sleep(self.parameters.wait_after_move)
 
-        color = agent.color_api.check() or Color(200, 255, 200)
+        color = agent.color_api.check() or Color(r=200, g=255, b=200)
 
         speed_x = (color.r - 200) / 50
         speed_y = (color.b - 200) / 50
