@@ -7,5 +7,12 @@
         "DISPLAY": "${localEnv:DISPLAY}"
     },
     "postCreateCommand": ["sh", ".devcontainer/update_bashrc.sh"],
-    "runArgs": ["--net=host"]
+    "runArgs": [
+        "--net",
+        "host",
+        "--ulimit",
+        "nofile=1024:131072",
+        "--memory",
+        "8g"
+    ]
 }
