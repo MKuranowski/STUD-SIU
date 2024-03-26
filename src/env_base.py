@@ -101,8 +101,11 @@ class EnvBase(ABC):
     agents: Dict[str, TurtleAgent] = field(default_factory=dict)
     step_sum: int = 0
 
-    def setup(self, routes_filename: str, agent_limit: float = inf) -> None:
+    @staticmethod
+    def init_ros() -> None:
         rospy.init_node("siu_example", anonymous=False)  # type: ignore
+
+    def setup(self, routes_filename: str, agent_limit: float = inf) -> None:
         self.meter_to_pixel_ratio = self.turtlesim_api.pixelsToScale()
         self.load_routes_from_file(routes_filename)
         self.create_agents(agent_limit)
