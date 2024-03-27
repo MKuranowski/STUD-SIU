@@ -50,6 +50,17 @@ class TurtleCameraView(NamedTuple):
     speeds_perpendicular_azimuth: NDArrayFloat = np.array(())
     occupancy: NDArrayFloat = np.array(())
 
+    def copy(self) -> "TurtleCameraView":
+        return TurtleCameraView(
+            self.speeds_x.copy(),
+            self.speeds_y.copy(),
+            self.penalties.copy(),
+            self.distances_to_goal.copy(),
+            self.speeds_along_azimuth.copy(),
+            self.speeds_perpendicular_azimuth.copy(),
+            self.occupancy.copy(),
+        )
+
 
 @dataclass
 class TurtleAgent:
@@ -142,7 +153,10 @@ class EnvBase(ABC):
         route = self.routes[route_id]
         section = route[section_id]
 
-        name = f"{route_id}/{section_id}/{agent_in_section_id}"
+        # NOTE: The rospy backend is stupid as shit and only accepts [A-Za-z/] characters
+        name = "/".join(
+            (int_to_ascii(route_id), int_to_ascii(section_id), int_to_ascii(agent_in_section_id))
+        )
         if self.turtlesim_api.hasTurtle(name):
             self.turtlesim_api.killTurtle(name)
         self.turtlesim_api.spawnTurtle(name, Pose())
@@ -257,7 +271,7 @@ class EnvBase(ABC):
             frame_pixel_size=self.parameters.cam_res,
             cell_count=self.parameters.grid_res**2,
             x_offset=0,
-            goal=Pose(agent.section.goal_x, agent.section.goal_y),
+            goal=Pose(x=agent.section.goal_x, y=agent.section.goal_y),
             show_matrix_cells_and_goal=False,
         )
 
@@ -300,3 +314,9 @@ class EnvBase(ABC):
     @abstractmethod
     def single_step(self, action: Action, realtime: bool = False) -> StepResult:
         raise NotImplementedError
+
+
+def int_to_ascii(n: int) -> str:
+    if n < 0 or n > 25:
+        raise ValueError("int_to_ascii only supports numbers between 0 and 25 (incl.)")
+    return chr(0x41 + n)

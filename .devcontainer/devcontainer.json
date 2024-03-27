@@ -14,5 +14,8 @@
         "nofile=1024:131072",
         "--memory",
         "8g"
-    ]
+    ],
+    "otherPortsAttributes": {
+        "onAutoForward": "ignore"
+    }
 }
