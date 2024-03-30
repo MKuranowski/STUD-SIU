@@ -11,7 +11,9 @@ has_ros = getenv("ROS_DISTRO", "").casefold() == "noetic"
 create_simulator: Callable[[], ContextManager[Simulator]]
 
 if forced_backend == "pygame":
-    raise NotImplementedError("TODO: pygame backend")
+    from .pygame import PygameSimulator
+
+    create_simulator = PygameSimulator
 elif forced_backend == "simple":
     from .simple import SimpleSimulator
 
