@@ -1,3 +1,4 @@
+from math import degrees
 from pathlib import Path
 from threading import Lock, Thread
 from typing import Any, List, Optional
@@ -103,10 +104,19 @@ class PygameSimulator(SimpleSimulator):
                 break
             elif event.type == simulator.refresh_event_type:
                 screen.blit(background, (0, 0))
+
                 with self.turtles_lock:
-                    for turtle in self.turtles.values():
-                        x, y = self.position_to_pixels(turtle)
-                        screen.blit(turtle_surface, (x, y))
+                    for turtle_pos in self.turtles.values():
+                        x, y = self.position_to_pixels(turtle_pos)
+                        rotated_surface = pygame.transform.rotate(
+                            turtle_surface,
+                            degrees(turtle_pos.angle),
+                        )
+                        rotated_surface_rect = rotated_surface.get_rect()
+                        x -= rotated_surface_rect.width / 2
+                        y -= rotated_surface_rect.height / 2
+                        screen.blit(rotated_surface, (x, y))
+
                 pygame.display.update()
 
         pygame.quit()
