@@ -90,7 +90,7 @@ class PygameSimulator(SimpleSimulator):
             (simulator.background.shape[1], simulator.background.shape[0]),
         )
 
-        turtle_surface = pygame.image.load(DATA_DIR / "turtle.png").convert()
+        turtle_surface = pygame.image.load(DATA_DIR / "turtle.png").convert_alpha()
         assert turtle_surface.get_rect().width == turtle_surface.get_rect().height
 
         background = pygame.image.load(self.background_path).convert()
