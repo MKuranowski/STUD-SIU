@@ -19,7 +19,7 @@ MODELS_DIR = Path("models")
 NDArrayFloat = npt.NDArray[np.float_]
 
 
-@dataclass
+@dataclass(frozen=True)
 class DQNParameters:
     discount: float = 0.8
     initial_epsilon: float = 1.0
@@ -268,12 +268,13 @@ class DQNSingle:
 
 if __name__ == "__main__":
     from .env_single import EnvSingle
+    from .simulator import create_simulator
 
-    env = EnvSingle()
-    env.init_ros()
-    env.setup("routes.csv", agent_limit=1)
+    with create_simulator() as simulator:
+        env = EnvSingle(simulator)
+        env.setup("routes.csv", agent_limit=1)
 
-    turtle_name = next(iter(env.agents))
+        turtle_name = next(iter(env.agents))
 
-    dqn = DQNSingle(env)
-    dqn.train(turtle_name, randomize_section=False)
+        dqn = DQNSingle(env)
+        dqn.train(turtle_name, randomize_section=False)

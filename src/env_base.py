@@ -3,15 +3,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from math import atan2, cos, dist, inf, pi, sin
 from random import uniform
-from time import sleep
 from typing import Dict, Iterable, List, NamedTuple, Optional
 
 import numpy as np
 import numpy.typing as npt
-import rospy
-from turtlesim.msg import Color, Pose
-from turtlesim.srv import SetPenRequest
-from TurtlesimSIU.TurtlesimSIU import ColorSensor, TurtlesimSIU
+
+from .simulator import ColorChecker, Position, Simulator
 
 NDArrayFloat = npt.NDArray[np.float_]
 
@@ -69,17 +66,16 @@ class TurtleAgent:
     section_id: int
     section: RouteSection
     id_within_section: int
-    color_api: ColorSensor
-    pose: Pose = Pose()
+    color_api: ColorChecker
+    pose: Position = Position()
     camera_view: TurtleCameraView = TurtleCameraView()
 
 
-@dataclass
+@dataclass(frozen=True)
 class Parameters:
     grid_res: int = 5
     cam_res: int = 200
     seconds_per_step: float = 1.0
-    wait_after_move: Optional[float] = 0.005
     reward_forward_rate: float = 0.5
     reward_reverse_rate: float = -10.0
     reward_speeding_rate: float = -10.0
@@ -105,19 +101,13 @@ class StepResult(NamedTuple):
 
 @dataclass
 class EnvBase(ABC):
+    simulator: Simulator
     parameters: Parameters = Parameters()
-    turtlesim_api: TurtlesimSIU = field(default_factory=TurtlesimSIU)
-    meter_to_pixel_ratio: float = 22.0
     routes: Dict[int, List[RouteSection]] = field(default_factory=dict)
     agents: Dict[str, TurtleAgent] = field(default_factory=dict)
     step_sum: int = 0
 
-    @staticmethod
-    def init_ros() -> None:
-        rospy.init_node("siu_example", anonymous=False)  # type: ignore
-
     def setup(self, routes_filename: str, agent_limit: float = inf) -> None:
-        self.meter_to_pixel_ratio = self.turtlesim_api.pixelsToScale()
         self.load_routes_from_file(routes_filename)
         self.create_agents(agent_limit)
 
@@ -146,21 +136,20 @@ class EnvBase(ABC):
                 for agent_in_section_id in range(section.agents_no):
                     self.spawn_agent(route_id, section_id, agent_in_section_id)
                     agent_count += 1
-                    if agent_count > agent_limit:
+                    if agent_count >= agent_limit:
                         return
 
     def spawn_agent(self, route_id: int, section_id: int, agent_in_section_id: int) -> None:
         route = self.routes[route_id]
         section = route[section_id]
 
-        # NOTE: The rospy backend is stupid as shit and only accepts [A-Za-z/] characters
+        # NOTE: The rospy backend is stupid as *** and only accepts [A-Za-z/] characters
         name = "/".join(
             (int_to_ascii(route_id), int_to_ascii(section_id), int_to_ascii(agent_in_section_id))
         )
-        if self.turtlesim_api.hasTurtle(name):
-            self.turtlesim_api.killTurtle(name)
-        self.turtlesim_api.spawnTurtle(name, Pose())
-        self.turtlesim_api.setPen(name, SetPenRequest(off=1))
+        if self.simulator.has_turtle(name):
+            self.simulator.kill_turtle(name)
+        self.simulator.spawn_turtle(name)
 
         agent = TurtleAgent(
             name=name,
@@ -168,7 +157,7 @@ class EnvBase(ABC):
             section_id=section_id,
             section=section,
             id_within_section=agent_in_section_id,
-            color_api=ColorSensor(name),
+            color_api=self.simulator.get_color_checker(name),
         )
 
         self.agents[name] = agent
@@ -198,15 +187,12 @@ class EnvBase(ABC):
                 pass
 
     def try_reset_turtle_within_section(self, turtle_name: str, agent: TurtleAgent) -> None:
-        agent.pose.x = uniform(agent.section.start_left, agent.section.start_right)
-        agent.pose.y = uniform(agent.section.start_bottom, agent.section.start_top)
-        agent.pose.theta = atan2(
-            agent.section.goal_y - agent.pose.y,
-            agent.section.goal_x - agent.pose.x,
-        )
-        self.turtlesim_api.setPose(turtle_name, agent.pose, "absolute")
-        if self.parameters.wait_after_move:
-            sleep(self.parameters.wait_after_move)
+        x = uniform(agent.section.start_left, agent.section.start_right)
+        y = uniform(agent.section.start_bottom, agent.section.start_top)
+        theta = atan2(agent.section.goal_y - y, agent.section.goal_x - x)
+
+        agent.pose = Position(x, y, theta)
+        self.simulator.move_absolute(turtle_name, agent.pose)
 
         speed_x, speed_y, _, _, _, _ = self.get_turtle_road_view(turtle_name, agent)
         agent.camera_view = self.get_turtle_camera_view(turtle_name, agent)
@@ -222,13 +208,12 @@ class EnvBase(ABC):
         if abs(speed_x) + abs(speed_y) <= 0.01:
             raise SpawnError("spawn at place with low suggested speed")
 
-        agent.pose.theta += uniform(
+        theta += uniform(
             -self.parameters.max_random_rotation,
             self.parameters.max_random_rotation,
         )
-        self.turtlesim_api.setPose(turtle_name, agent.pose, "absolute")
-        if self.parameters.wait_after_move:
-            sleep(self.parameters.wait_after_move)
+        agent.pose = Position(x, y, theta)
+        self.simulator.move_absolute(turtle_name, agent.pose)
 
     def get_turtle_road_view(
         self,
@@ -236,19 +221,18 @@ class EnvBase(ABC):
         agent: Optional[TurtleAgent] = None,
     ) -> TurtleRoadView:
         agent = agent or self.agents[turtle_name]
-        if self.parameters.wait_after_move:
-            sleep(self.parameters.wait_after_move)
+        # There was a sleep here, not sure if it necessary
 
-        color = agent.color_api.check() or Color(r=200, g=255, b=200)
+        color = agent.color_api.check()
 
         speed_x = (color.r - 200) / 50
         speed_y = (color.b - 200) / 50
         penalty = color.g / 255
-        pose = self.turtlesim_api.getPose(turtle_name)
+        pose = self.simulator.get_position(turtle_name)
 
         distance_to_goal = dist((pose.x, pose.y), (agent.section.goal_x, agent.section.goal_y))
-        speed_along_azimuth = speed_x * cos(pose.theta) + speed_y * sin(pose.theta)
-        speed_perpendicular_azimuth = speed_y * cos(pose.theta) - speed_x * sin(pose.theta)
+        speed_along_azimuth = speed_x * cos(pose.angle) + speed_y * sin(pose.angle)
+        speed_perpendicular_azimuth = speed_y * cos(pose.angle) - speed_x * sin(pose.angle)
 
         return TurtleRoadView(
             speed_x,
@@ -265,14 +249,12 @@ class EnvBase(ABC):
         agent: Optional[TurtleAgent] = None,
     ) -> TurtleCameraView:
         agent = agent or self.agents[turtle_name]
-        pose = self.turtlesim_api.getPose(turtle_name)
-        img = self.turtlesim_api.readCamera(
+        pose = self.simulator.get_position(turtle_name)
+        img = self.simulator.read_camera(
             name=turtle_name,
             frame_pixel_size=self.parameters.cam_res,
-            cell_count=self.parameters.grid_res**2,
-            x_offset=0,
-            goal=Pose(x=agent.section.goal_x, y=agent.section.goal_y),
-            show_matrix_cells_and_goal=False,
+            cell_side_count=self.parameters.grid_res,
+            goal=Position(x=agent.section.goal_x, y=agent.section.goal_y),
         )
 
         speeds_x = self.base_camera_matrix()
@@ -281,17 +263,17 @@ class EnvBase(ABC):
         distances_to_goal = self.base_camera_matrix()
         occupancy = self.base_camera_matrix()
 
-        for i, row in enumerate(img.m_rows):
-            for j, cell in enumerate(row.cells):
-                speeds_x[i, j] = cell.red
-                speeds_y[i, j] = cell.blue
-                penalties[i, j] = cell.green
-                distances_to_goal[i, j] = cell.distance
-                occupancy[i, j] = cell.occupy
+        for i, row in enumerate(img):
+            for j, cell in enumerate(row):
+                speeds_x[i, j] = cell.r
+                speeds_y[i, j] = cell.b
+                penalties[i, j] = cell.g
+                distances_to_goal[i, j] = cell.distance_to_goal
+                occupancy[i, j] = cell.free
 
-        speeds_along_azimuth = speeds_x * np.cos(pose.theta) + speeds_y * np.sin(pose.theta)
-        speeds_perpendicular_azimuth = speeds_y * np.cos(pose.theta) - speeds_x * np.sin(
-            pose.theta
+        speeds_along_azimuth = speeds_x * np.cos(pose.angle) + speeds_y * np.sin(pose.angle)
+        speeds_perpendicular_azimuth = speeds_y * np.cos(pose.angle) - speeds_x * np.sin(
+            pose.angle
         )
 
         return TurtleCameraView(
