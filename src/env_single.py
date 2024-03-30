@@ -2,9 +2,9 @@ from copy import copy
 from dataclasses import dataclass
 from math import cos, sin, sqrt
 from random import uniform
-from time import sleep
 
 from .env_base import Action, EnvBase, StepResult
+from .simulator import Position
 
 
 @dataclass
@@ -18,12 +18,11 @@ class EnvSingle(EnvBase):
         if realtime:
             raise NotImplementedError("realtime mode")
         else:
-            agent.pose.theta += action.turn
-            agent.pose.x += cos(agent.pose.theta) * action.speed * self.parameters.seconds_per_step
-            agent.pose.y += sin(action.turn) * action.speed * self.parameters.seconds_per_step
-            self.turtlesim_api.setPose(agent.name, agent.pose, "absolute")
-            if self.parameters.wait_after_move:
-                sleep(self.parameters.wait_after_move)
+            angle = agent.pose.angle + action.turn
+            x = agent.pose.x + cos(angle) * action.speed * self.parameters.seconds_per_step
+            y = agent.pose.y + sin(action.turn) * action.speed * self.parameters.seconds_per_step
+            agent.pose = Position(x, y, angle)
+            self.simulator.move_absolute(agent.name, agent.pose)
 
         road = self.get_turtle_road_view(agent.name)
         speed_x = (agent.pose.x - pose_before.x) / self.parameters.seconds_per_step
@@ -63,7 +62,6 @@ class EnvSingle(EnvBase):
 
 
 if __name__ == "__main__":
-    EnvSingle.init_ros()
     env = EnvSingle()
     env.setup("routes.csv", agent_limit=1)
     env.reset()
