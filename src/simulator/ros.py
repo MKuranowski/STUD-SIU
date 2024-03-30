@@ -52,13 +52,13 @@ class ROSSimulator(Simulator):
         pose = self.get_pose_service(name).result
         return Position(pose.x, pose.y, pose.theta)
 
-    def set_position(self, name: str, new_pos: Position) -> None:
+    def move_absolute(self, name: str, new_pos: Position) -> None:
         rospy.ServiceProxy(
             f"/{name}/teleport_absolute",
             turtlesim.srv.TeleportAbsolute,
         )(x=new_pos.x, y=new_pos.y, theta=new_pos.angle)
 
-    def move(self, name: str, distance: float, angle: float) -> None:
+    def move_relative(self, name: str, distance: float, angle: float) -> None:
         rospy.ServiceProxy(
             f"/{name}/teleport_absolute",
             turtlesim.srv.TeleportRelative,

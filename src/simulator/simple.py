@@ -62,12 +62,12 @@ class SimpleSimulator(Simulator):
             raise KeyError(name)
         self.turtles[name] = at
 
-    def set_position(self, name: str, new_pos: Position) -> None:
+    def move_absolute(self, name: str, new_pos: Position) -> None:
         if name not in self.turtles:
             raise KeyError(name)
         self.turtles[name] = new_pos
 
-    def move(self, name: str, distance: float, angle: float) -> None:
+    def move_relative(self, name: str, distance: float, angle: float) -> None:
         current_pos = self.turtles[name]
         new_angle = current_pos.angle + angle
         new_x = current_pos.x + distance * cos(new_angle)
