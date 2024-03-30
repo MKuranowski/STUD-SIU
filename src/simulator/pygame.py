@@ -1,12 +1,12 @@
 from pathlib import Path
-from threading import Thread
-from typing import Any, Optional
+from threading import Lock, Thread
+from typing import Any, List, Optional
 
 import pygame
 from typing_extensions import Self
 
 from .simple import SimpleSimulator
-from .simulator import Position
+from .simulator import CameraCell, Position
 
 DATA_DIR = Path(__file__).with_name("data")
 
@@ -19,6 +19,7 @@ class PygameSimulator(SimpleSimulator):
     ) -> None:
         self.refresh_event_type = pygame.event.custom_type()
         self.pygame_thread: Optional[Thread] = None
+        self.turtles_lock = Lock()
         super().__init__(background_path, scale_m_to_px)
 
     def __enter__(self) -> Self:
@@ -39,23 +40,48 @@ class PygameSimulator(SimpleSimulator):
         if self.pygame_thread and self.pygame_thread.is_alive():
             pygame.event.post(pygame.event.Event(self.refresh_event_type))
         else:
-            raise RuntimeError("Request refreshed, but pygame is not")
+            raise RuntimeError("Request refreshed, but pygame is not running")
+
+    def has_turtle(self, name: str) -> bool:
+        with self.turtles_lock:
+            return super().has_turtle(name)
 
     def kill_turtle(self, name: str) -> None:
+        with self.turtles_lock:
+            super().kill_turtle(name)
         self.request_refresh()
-        return super().kill_turtle(name)
 
     def spawn_turtle(self, name: str, at: Position = Position()) -> None:
+        with self.turtles_lock:
+            super().spawn_turtle(name, at)
         self.request_refresh()
-        return super().spawn_turtle(name, at)
 
     def move_absolute(self, name: str, new_pos: Position) -> None:
+        with self.turtles_lock:
+            super().move_absolute(name, new_pos)
         self.request_refresh()
-        return super().move_absolute(name, new_pos)
 
     def move_relative(self, name: str, distance: float, angle: float) -> None:
+        with self.turtles_lock:
+            super().move_relative(name, distance, angle)
         self.request_refresh()
-        return super().move_relative(name, distance, angle)
+
+    def get_position(self, name: str) -> Position:
+        with self.turtles_lock:
+            return super().get_position(name)
+
+    def read_camera(
+        self,
+        name: str,
+        frame_pixel_size: int,
+        cell_side_count: int,
+        goal: Position,
+    ) -> List[List[CameraCell]]:
+        with self.turtles_lock:
+            return super().read_camera(name, frame_pixel_size, cell_side_count, goal)
+
+    # NOTE: get_color_checker doesn't need to be overwritten. SimpleColorChecker will call
+    #       simulator.get_position, which will acquire the turtles_lock.
 
     def run_pygame_thread(self) -> None:
         pygame.init()
@@ -77,9 +103,10 @@ class PygameSimulator(SimpleSimulator):
                 break
             elif event.type == simulator.refresh_event_type:
                 screen.blit(background, (0, 0))
-                for turtle in self.turtles.values():
-                    x, y = self.position_to_pixels(turtle)
-                    screen.blit(turtle_surface, (x, y))
+                with self.turtles_lock:
+                    for turtle in self.turtles.values():
+                        x, y = self.position_to_pixels(turtle)
+                        screen.blit(turtle_surface, (x, y))
                 pygame.display.update()
 
         pygame.quit()
