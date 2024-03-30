@@ -19,7 +19,7 @@ MODELS_DIR = Path("models")
 NDArrayFloat = npt.NDArray[np.float_]
 
 
-@dataclass
+@dataclass(frozen=True)
 class DQNParameters:
     discount: float = 0.8
     initial_epsilon: float = 1.0
@@ -270,7 +270,6 @@ if __name__ == "__main__":
     from .env_single import EnvSingle
 
     env = EnvSingle()
-    env.init_ros()
     env.setup("routes.csv", agent_limit=1)
 
     turtle_name = next(iter(env.agents))
