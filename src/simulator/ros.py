@@ -1,13 +1,16 @@
 # pyright: basic
 
 import threading
-from typing import List
+from time import sleep
+from typing import List, Optional
 
 import rospy
 import turtlesim.msg
 import turtlesim.srv
 
 from .simulator import CameraCell, Color, ColorChecker, Position, Simulator
+
+WAIT_AFTER_MOVE: Optional[float] = 0.005
 
 _ros_initialization_lock = threading.Lock()
 _ros_initialized = False
@@ -47,6 +50,8 @@ class ROSSimulator(Simulator):
     def spawn_turtle(self, name: str, at: Position = Position()) -> None:
         self.spawn_service(at.x, at.y, at.angle, name)
         rospy.ServiceProxy(f"/{name}/set_pen", turtlesim.srv.SetPen)(off=1)
+        if WAIT_AFTER_MOVE:
+            sleep(WAIT_AFTER_MOVE)
 
     def get_position(self, name: str) -> Position:
         pose = self.get_pose_service(name).result
@@ -57,12 +62,16 @@ class ROSSimulator(Simulator):
             f"/{name}/teleport_absolute",
             turtlesim.srv.TeleportAbsolute,
         )(x=new_pos.x, y=new_pos.y, theta=new_pos.angle)
+        if WAIT_AFTER_MOVE:
+            sleep(WAIT_AFTER_MOVE)
 
     def move_relative(self, name: str, distance: float, angle: float) -> None:
         rospy.ServiceProxy(
             f"/{name}/teleport_absolute",
             turtlesim.srv.TeleportRelative,
         )(linear=distance, angular=angle)
+        if WAIT_AFTER_MOVE:
+            sleep(WAIT_AFTER_MOVE)
 
     def read_camera(
         self,
