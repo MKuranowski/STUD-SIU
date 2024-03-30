@@ -9,7 +9,6 @@ from src.simulator.simulator import Color
 
 from .simulator import CameraCell, ColorChecker, Position, Simulator
 
-
 USE_BROKEN_ROS_DISTANCE_ALGORITHM = True
 
 
@@ -312,7 +311,7 @@ class SimpleColorChecker(ColorChecker):
     def check(self) -> Color:
         position = self.simple_simulator.get_position(self.name)
         x, y = self.simple_simulator.position_to_pixels(position)
-        b, g, r = self.simple_simulator.background[x, y]
+        b, g, r = self.simple_simulator.background[y, x]
         return Color(
             r=clamp((r - 200) / 50, -1.0, 1.0),
             g=clamp(g / 255, 0.0, 1.0),
