@@ -1,4 +1,4 @@
-from typing import NamedTuple, List, Protocol
+from typing import List, NamedTuple, Protocol
 
 
 class CameraCell(NamedTuple):

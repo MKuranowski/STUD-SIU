@@ -8,7 +8,7 @@ from typing import Dict, Iterable, List, NamedTuple, Optional
 import numpy as np
 import numpy.typing as npt
 
-from .simulator import ColorChecker, Position, Simulator, create_simulator
+from .simulator import ColorChecker, Position, Simulator
 
 NDArrayFloat = npt.NDArray[np.float_]
 
@@ -101,8 +101,8 @@ class StepResult(NamedTuple):
 
 @dataclass
 class EnvBase(ABC):
+    simulator: Simulator
     parameters: Parameters = Parameters()
-    simulator: Simulator = field(default_factory=create_simulator)
     routes: Dict[int, List[RouteSection]] = field(default_factory=dict)
     agents: Dict[str, TurtleAgent] = field(default_factory=dict)
     step_sum: int = 0

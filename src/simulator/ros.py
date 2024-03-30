@@ -2,11 +2,12 @@
 
 import threading
 from time import sleep
-from typing import List, Optional
+from typing import Any, List, Optional
 
 import rospy
 import turtlesim.msg
 import turtlesim.srv
+from typing_extensions import Self
 
 from .simulator import CameraCell, Color, ColorChecker, Position, Simulator
 
@@ -40,6 +41,12 @@ class ROSSimulator(Simulator):
             turtlesim.srv.GetCameraImage,
         )
         self.get_camera_service.wait_for_service()
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *_: Any) -> bool:
+        return False
 
     def has_turtle(self, name: str) -> bool:
         return self.has_turtle_service(name).result

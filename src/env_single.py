@@ -62,11 +62,14 @@ class EnvSingle(EnvBase):
 
 
 if __name__ == "__main__":
-    env = EnvSingle()
-    env.setup("routes.csv", agent_limit=1)
-    env.reset()
-    for _ in range(10):
-        env.step(
-            (Action(name, uniform(0.2, 1.0), uniform(-0.3, 0.3)) for name in env.agents),
-            realtime=False,
-        )
+    from .simulator import create_simulator
+
+    with create_simulator() as simulator:
+        env = EnvSingle(simulator)
+        env.setup("routes.csv", agent_limit=1)
+        env.reset()
+        for _ in range(10):
+            env.step(
+                (Action(name, uniform(0.2, 1.0), uniform(-0.3, 0.3)) for name in env.agents),
+                realtime=False,
+            )

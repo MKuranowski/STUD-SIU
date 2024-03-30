@@ -1,13 +1,12 @@
 from math import cos, dist, sin
-from typing import Dict, List, Tuple, TypeVar
+from typing import Any, Dict, List, Tuple, TypeVar
 
 import cv2
 import numpy as np
 import numpy.typing as npt
+from typing_extensions import Self
 
-from src.simulator.simulator import Color
-
-from .simulator import CameraCell, ColorChecker, Position, Simulator
+from .simulator import CameraCell, Color, ColorChecker, Position, Simulator
 
 USE_BROKEN_ROS_DISTANCE_ALGORITHM = True
 
@@ -32,6 +31,12 @@ class SimpleSimulator(Simulator):
 
         self.turtles: Dict[str, Position] = {}
         """Positions of all known turtles, indexed by their name"""
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *_: Any) -> bool:
+        return False
 
     def position_to_pixels(self, p: Position) -> Tuple[int, int]:
         """position_to_pixels converts a given position in meters, to
