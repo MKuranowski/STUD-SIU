@@ -87,7 +87,7 @@ class PygameSimulator(SimpleSimulator):
     def run_pygame_thread(self) -> None:
         pygame.init()
         screen = pygame.display.set_mode(
-            (simulator.background.shape[1], simulator.background.shape[0]),
+            (self.background.shape[1], self.background.shape[0]),
         )
 
         turtle_surface = pygame.image.load(DATA_DIR / "turtle.png").convert_alpha()
@@ -102,7 +102,7 @@ class PygameSimulator(SimpleSimulator):
             if event.type == pygame.QUIT:
                 print("Quitting")
                 break
-            elif event.type == simulator.refresh_event_type:
+            elif event.type == self.refresh_event_type:
                 screen.blit(background, (0, 0))
 
                 with self.turtles_lock:
