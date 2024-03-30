@@ -61,7 +61,7 @@ class SimpleSimulator(Simulator):
         self,
         name: str,
         frame_pixel_size: int,
-        cell_count: int,
+        cell_side_count: int,
         goal: Position,
     ) -> List[List[CameraCell]]:
         raise NotImplementedError

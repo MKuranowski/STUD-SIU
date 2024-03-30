@@ -17,8 +17,8 @@ class CameraCell(NamedTuple):
     """distance_to_goal represents the distance to the goal (in meters)
     from the center of the cell"""
 
-    occupied: bool = False
-    """occupied is set to true if there is another turtle in the cell"""
+    free: bool = True
+    """free is set to true if there is no other turtle in the cell"""
 
 
 class Color(NamedTuple):
@@ -58,7 +58,7 @@ class Simulator(Protocol):
         self,
         name: str,
         frame_pixel_size: int,
-        cell_count: int,
+        cell_side_count: int,
         goal: Position,
     ) -> List[List[CameraCell]]: ...
     def get_color_checker(self, name: str) -> ColorChecker: ...

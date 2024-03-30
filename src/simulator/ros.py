@@ -4,7 +4,8 @@ import threading
 from typing import List
 
 import rospy
-import turtlesim
+import turtlesim.msg
+import turtlesim.srv
 
 from .simulator import CameraCell, Color, ColorChecker, Position, Simulator
 
@@ -24,13 +25,18 @@ class ROSSimulator(Simulator):
     def __init__(self) -> None:
         _initialize_ros()
         self.has_turtle_service = rospy.ServiceProxy("has_turtle", turtlesim.srv.HasTurtle)
+        self.has_turtle_service.wait_for_service()
         self.kill_turtle_service = rospy.ServiceProxy("kill", turtlesim.srv.Kill)
+        self.kill_turtle_service.wait_for_service()
         self.spawn_service = rospy.ServiceProxy("spawn", turtlesim.srv.Spawn)
+        self.spawn_service.wait_for_service()
         self.get_pose_service = rospy.ServiceProxy("get_pose", turtlesim.srv.GetPose)
+        self.get_pose_service.wait_for_service()
         self.get_camera_service = rospy.ServiceProxy(
             "get_camera_image",
             turtlesim.srv.GetCameraImage,
         )
+        self.get_camera_service.wait_for_service()
 
     def has_turtle(self, name: str) -> bool:
         return self.has_turtle_service(name).result
@@ -62,19 +68,21 @@ class ROSSimulator(Simulator):
         self,
         name: str,
         frame_pixel_size: int,
-        cell_count: int,
+        cell_side_count: int,
         goal: Position,
     ) -> List[List[CameraCell]]:
         img = self.get_camera_service(
             name=name,
             frame_pixel_size=frame_pixel_size,
-            cell_count=cell_count,
+            cell_count=cell_side_count * cell_side_count,
             x_offset=0,
             goal=turtlesim.msg.Pose(x=goal.x, y=goal.y),
-            show_matrix_cells_and_goal=False,
+            show_matrix_cells_and_goal=True,
         )
         return [
             [
+                # XXX: cell.occupy is set when **NOT** occupied - no need to negate,
+                #      but holy *** is the API awful
                 CameraCell(cell.red, cell.green, cell.blue, cell.distance, bool(cell.occupy))
                 for cell in row.cells
             ]
