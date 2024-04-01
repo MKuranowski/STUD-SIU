@@ -211,7 +211,7 @@ class DQNSingle:
 
                 if self.train_count % self.parameters.target_update_period == 0:
                     print("\tupdating target model weights")
-                    target_model.set_weights(self.model.get_weights())  # type: ignore
+                    self.target_model.set_weights(self.model.get_weights())  # type: ignore
 
             if done:
                 break
