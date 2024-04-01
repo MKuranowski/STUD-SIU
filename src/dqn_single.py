@@ -183,7 +183,7 @@ class DQNSingle:
                 control = int(np.argmax(self.decision(self.model, last_state, current_state)))
             else:
                 print("\tsteering randomly")
-                control = self.random.randint(0, self.parameters.control_dimension)
+                control = self.random.randint(0, self.parameters.control_dimension - 1)
 
             new_state, reward, done = self.env.step(
                 [self.control_to_action(turtle_name, control)],
