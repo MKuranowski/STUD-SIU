@@ -100,7 +100,6 @@ class PygameSimulator(SimpleSimulator):
         while True:
             event = pygame.event.wait()
             if event.type == pygame.QUIT:
-                print("Quitting")
                 break
             elif event.type == self.refresh_event_type:
                 screen.blit(background, (0, 0))
