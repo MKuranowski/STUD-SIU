@@ -8,8 +8,8 @@ from typing import Any, List, NamedTuple
 import numpy as np
 import numpy.typing as npt
 import tensorflow as tf  # type: ignore
-from keras.layers import Conv3D, Dense, Flatten, Permute  # type: ignore
-from keras.models import Sequential  # type: ignore
+from tensorflow.keras.layers import Conv3D, Dense, Flatten, Permute  # type: ignore
+from tensorflow.keras.models import Sequential  # type: ignore
 from tensorflow import keras  # type: ignore
 
 from .env_base import Action, EnvBase, TurtleCameraView
