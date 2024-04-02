@@ -12,7 +12,14 @@ import numpy.typing as npt
 import tensorflow as tf  # type: ignore
 from tensorflow import keras  # type: ignore
 from tensorflow.keras import Input, Sequential  # type: ignore
-from tensorflow.keras.layers import Conv3D, Dense, Flatten, Permute, Reshape  # type: ignore
+from tensorflow.keras.layers import (  # type: ignore
+    Conv2D,
+    Conv3D,
+    Dense,
+    Flatten,
+    Permute,
+    Reshape,
+)
 
 from .env_base import Action, EnvBase, TurtleCameraView
 
@@ -140,6 +147,87 @@ class DQNSingle:
         n = self.env.parameters.grid_res
         m = 8
         o = self.parameters.control_dimension
+
+        # Model: "sequential"
+        # ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
+        # ┃ Layer (type)      ┃ Output Shape     ┃ Param # ┃
+        # ┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩
+        # │ (input)           │ (None, 5, 5, 8)  │       0 │
+        # ├───────────────────┼──────────────────┼─────────┤
+        # │ conv2d (Conv2D)   │ (None, 4, 4, 16) │     528 │
+        # ├───────────────────┼──────────────────┼─────────┤
+        # │ conv2d_1 (Conv2D) │ (None, 3, 3, 16) │   1,040 │
+        # ├───────────────────┼──────────────────┼─────────┤
+        # │ conv2d_2 (Conv2D) │ (None, 2, 2, 16) │   1,040 │
+        # ├───────────────────┼──────────────────┼─────────┤
+        # │ flatten (Flatten) │ (None, 64)       │       0 │
+        # ├───────────────────┼──────────────────┼─────────┤
+        # │ dense (Dense)     │ (None, 32)       │   2,080 │
+        # ├───────────────────┼──────────────────┼─────────┤
+        # │ dense_1 (Dense)   │ (None, 32)       │   1,056 │
+        # ├───────────────────┼──────────────────┼─────────┤
+        # │ dense_2 (Dense)   │ (None, 10)       │     330 │
+        # └───────────────────┴──────────────────┴─────────┘
+        #  Total params: 6,074 (23.73 KB)
+        #  Trainable params: 6,074 (23.73 KB)
+        #  Non-trainable params: 0 (0.00 B)
+
+        model: Any = Sequential()
+        model.add(Input(shape=(n, n, m)))
+        model.add(Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
+        model.add(Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
+        model.add(Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
+        model.add(Flatten())
+        model.add(Dense(32, activation="relu"))
+        model.add(Dense(32, activation="relu"))
+        model.add(Dense(o, activation="linear"))
+        model.compile(
+            loss="mse",
+            optimizer=keras.optimizers.Adam(learning_rate=0.001),
+            metrics=["accuracy"],
+        )
+        return model
+
+    def make_model_with_pointless_dimension(self) -> Sequential:
+        # NOTE: This is the original (prof-provided) sequential model definition.
+        #       It seems to pointlessly inflate initial convolutions by a whole dimension (?)
+        #       I'm not an expert, but in case the model with Conv2D misbehaves, maybe we should
+        #       revert to this one?
+
+        n = self.env.parameters.grid_res
+        n = self.env.parameters.grid_res
+        m = 8
+        o = self.parameters.control_dimension
+
+        # Model: "sequential"
+        # ┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
+        # ┃ Layer (type)        ┃ Output Shape        ┃ Param # ┃
+        # ┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩
+        # │ (input)             │ (None, 5, 5, 8)     │       0 │
+        # ├─────────────────────┼─────────────────────┼─────────┤
+        # │ reshape (Reshape)   │ (None, 5, 5, 8, 1)  │       0 │
+        # ├─────────────────────┼─────────────────────┼─────────┤
+        # │ conv3d (Conv3D)     │ (None, 4, 4, 1, 16) │     528 │
+        # ├─────────────────────┼─────────────────────┼─────────┤
+        # │ permute (Permute)   │ (None, 4, 4, 16, 1) │       0 │
+        # ├─────────────────────┼─────────────────────┼─────────┤
+        # │ conv3d_1 (Conv3D)   │ (None, 3, 3, 1, 16) │   1,040 │
+        # ├─────────────────────┼─────────────────────┼─────────┤
+        # │ permute_1 (Permute) │ (None, 3, 3, 16, 1) │       0 │
+        # ├─────────────────────┼─────────────────────┼─────────┤
+        # │ conv3d_2 (Conv3D)   │ (None, 2, 2, 1, 16) │   1,040 │
+        # ├─────────────────────┼─────────────────────┼─────────┤
+        # │ flatten (Flatten)   │ (None, 64)          │       0 │
+        # ├─────────────────────┼─────────────────────┼─────────┤
+        # │ dense (Dense)       │ (None, 32)          │   2,080 │
+        # ├─────────────────────┼─────────────────────┼─────────┤
+        # │ dense_1 (Dense)     │ (None, 32)          │   1,056 │
+        # ├─────────────────────┼─────────────────────┼─────────┤
+        # │ dense_2 (Dense)     │ (None, 10)          │     330 │
+        # └─────────────────────┴─────────────────────┴─────────┘
+        # Total params: 6,074 (23.73 KB)
+        # Trainable params: 6,074 (23.73 KB)
+        # Non-trainable params: 0 (0.00 B)
 
         model: Any = Sequential()
         model.add(Input(shape=(n, n, m)))
