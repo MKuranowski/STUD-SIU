@@ -93,7 +93,7 @@ class ROSSimulator(Simulator):
             cell_count=cell_side_count * cell_side_count,
             x_offset=0,
             goal=turtlesim.msg.Pose(x=goal.x, y=goal.y),
-            show_matrix_cells_and_goal=True,
+            show_matrix_cells_and_goal=False,
         )
         return [
             [
