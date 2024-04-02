@@ -33,12 +33,12 @@ logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class DQNParameters:
-    discount: float = 0.8
+    discount: float = 0.9
     initial_epsilon: float = 1.0
     epsilon_decay: float = 0.99
     epsilon_min: float = 0.05
     replay_memory_max_size: int = 20_000
-    replay_memory_min_size: int = 1_500
+    replay_memory_min_size: int = 4_000
     minibatch_size: int = 32
 
     training_batch_divisor: int = 4
@@ -48,7 +48,7 @@ class DQNParameters:
 
     target_update_period: int = 20
     max_episodes: int = 4_000
-    control_dimension: int = 10
+    control_dimension: int = 6
     train_period: int = 4
     save_period: int = 200
 

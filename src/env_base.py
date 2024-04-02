@@ -83,7 +83,7 @@ class Parameters:
     out_of_track_fine: float = -10.0
     collision_distance: float = 1.5
     detect_collisions: bool = False
-    max_steps: int = 20
+    max_steps: int = 200
     max_random_rotation: float = pi / 6
 
 
