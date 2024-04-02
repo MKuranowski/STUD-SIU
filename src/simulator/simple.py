@@ -8,7 +8,7 @@ from typing_extensions import Self
 
 from .simulator import CameraCell, Color, ColorChecker, Position, Simulator
 
-USE_BROKEN_ROS_DISTANCE_ALGORITHM = True
+USE_BROKEN_ROS_DISTANCE_ALGORITHM = False
 
 
 Number = TypeVar("Number", int, float)
