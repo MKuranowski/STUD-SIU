@@ -225,9 +225,9 @@ class EnvBase(ABC):
 
         color = agent.color_api.check()
 
-        speed_x = (color.r - 200) / 50
-        speed_y = (color.b - 200) / 50
-        penalty = color.g / 255
+        speed_x = color.r
+        speed_y = color.b
+        penalty = color.g
         pose = self.simulator.get_position(turtle_name)
 
         distance_to_goal = dist((pose.x, pose.y), (agent.section.goal_x, agent.section.goal_y))
