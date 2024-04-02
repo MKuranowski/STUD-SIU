@@ -20,7 +20,7 @@ class EnvSingle(EnvBase):
         else:
             angle = agent.pose.angle + action.turn
             x = agent.pose.x + cos(angle) * action.speed * self.parameters.seconds_per_step
-            y = agent.pose.y + sin(action.turn) * action.speed * self.parameters.seconds_per_step
+            y = agent.pose.y + sin(angle) * action.speed * self.parameters.seconds_per_step
             agent.pose = Position(x, y, angle)
             self.simulator.move_absolute(agent.name, agent.pose)
 
