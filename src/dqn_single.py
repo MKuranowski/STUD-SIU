@@ -5,7 +5,7 @@ from pathlib import Path
 from random import Random
 from statistics import mean
 from time import perf_counter
-from typing import Any, List, NamedTuple
+from typing import Any, List, NamedTuple, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -280,7 +280,11 @@ class DQNSingle:
         self.model.weights[0] = tf.Variable(weights)  # type: ignore
 
     def save_model(self) -> None:
-        self.model.save(MODELS_DIR / f"{self.signature()}.h5")  # type: ignore
+        self.model.save(MODELS_DIR / f"{self.signature()}.keras")  # type: ignore
+
+    def load_model(self, filename: Union[str, Path]) -> None:
+        self.model = keras.models.load_model(filename)  # type: ignore
+        self.target_model = keras.models.clone_model(self.model)  # type: ignore
 
 
 if __name__ == "__main__":
@@ -293,6 +297,7 @@ if __name__ == "__main__":
 
     arg_parser = ArgumentParser()
     arg_parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
+    arg_parser.add_argument("-m", "--model", help="load model from this path", type=Path)
     args = arg_parser.parse_args()
 
     coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)  # type: ignore
@@ -304,4 +309,6 @@ if __name__ == "__main__":
         turtle_name = next(iter(env.agents))
 
         dqn = DQNSingle(env)
+        if args.model:
+            dqn.load_model(args.model)
         dqn.train(turtle_name, randomize_section=False)
