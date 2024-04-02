@@ -2,9 +2,13 @@ from copy import copy
 from dataclasses import dataclass
 from math import cos, sin, sqrt
 from random import uniform
+import logging
 
 from .env_base import Action, EnvBase, StepResult
 from .simulator import Position
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -55,7 +59,16 @@ class EnvSingle(EnvBase):
             + reward_distance
             + reward_out_of_track
         )
-        done = reward_out_of_track < 0 or self.step_sum > self.parameters.max_steps
+
+        close_to_goal = road.distance_to_goal < 1.0
+        if close_to_goal:
+            logger.warn("Goal reached!")
+
+        done = (
+            reward_out_of_track < 0
+            or road.distance_to_goal < 1.0
+            or self.step_sum > self.parameters.max_steps
+        )
 
         agent.camera_view = self.get_turtle_camera_view(agent.name, agent)
         return StepResult(agent.camera_view, reward, done)
