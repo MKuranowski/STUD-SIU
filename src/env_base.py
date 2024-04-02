@@ -195,15 +195,15 @@ class EnvBase(ABC):
         self.simulator.move_absolute(turtle_name, agent.pose)
 
         speed_x, speed_y, _, _, _, _ = self.get_turtle_road_view(turtle_name, agent)
-        agent.camera_view = self.get_turtle_camera_view(turtle_name, agent)
-        if (
-            self.parameters.detect_collisions
-            and agent.camera_view.occupancy[
-                self.parameters.grid_res // 2, self.parameters.grid_res - 1
-            ]
-            == 0
-        ):
-            raise SpawnError("collision")
+        if self.parameters.detect_collisions:
+            agent.camera_view = self.get_turtle_camera_view(turtle_name, agent)
+            if (
+                agent.camera_view.occupancy[
+                    self.parameters.grid_res // 2, self.parameters.grid_res - 1
+                ]
+                == 0
+            ):
+                raise SpawnError("collision")
 
         if abs(speed_x) + abs(speed_y) <= 0.01:
             raise SpawnError("spawn at place with low suggested speed")
