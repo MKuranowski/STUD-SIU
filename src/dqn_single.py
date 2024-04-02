@@ -11,8 +11,8 @@ import numpy as np
 import numpy.typing as npt
 import tensorflow as tf  # type: ignore
 from tensorflow import keras  # type: ignore
-from tensorflow.keras.layers import Conv3D, Dense, Flatten, Permute  # type: ignore
-from tensorflow.keras.models import Sequential  # type: ignore
+from tensorflow.keras import Input, Sequential  # type: ignore
+from tensorflow.keras.layers import Conv3D, Dense, Flatten, Permute, Reshape  # type: ignore
 
 from .env_base import Action, EnvBase, TurtleCameraView
 
@@ -65,8 +65,8 @@ class DQNSingle:
         self.random = Random(seed)
         self.env = env
         self.parameters = parameters
-        self.model = self.make_model(env.parameters.grid_res, 8, parameters)
-        self.target_model: Sequential = keras.models.clone_model(self.model)  # type: ignore
+        self.model = self.make_model()
+        self.target_model = self.make_model()
         self.replay_memory: "deque[MemoryEntry]" = deque(
             maxlen=self.parameters.replay_memory_max_size
         )
@@ -127,17 +127,24 @@ class DQNSingle:
         last: TurtleCameraView,
         current: TurtleCameraView,
     ) -> NDArrayFloat:
-        input = np.expand_dims(DQNSingle.input_stack(last, current), (-1, 0))
-        return model(input).numpy().flatten()  # type: ignore
+        # Calling model (to retrieve predictions) expects a (B, n, n, m) matrix,
+        # with B representing the amount of different inputs to make predictions for.
+        # Since we only do a single prediction, we have to expand input_stack from (n, n, m)
+        # to (1, n, n, m).
+        prediction = model(np.expand_dims(DQNSingle.input_stack(last, current), axis=0))
+        assert prediction.shape[0] == 1
+        return prediction[0].numpy()
 
-    @staticmethod
-    def make_model(n: int, m: int, params: DQNParameters) -> Sequential:
+    def make_model(self) -> Sequential:
+        n = self.env.parameters.grid_res
+        n = self.env.parameters.grid_res
+        m = 8
+        o = self.parameters.control_dimension
+
         model: Any = Sequential()
-        model.add(
-            Conv3D(
-                filters=2 * m, kernel_size=(2, 2, m), activation="relu", input_shape=(n, n, m, 1)
-            )
-        )
+        model.add(Input(shape=(n, n, m)))
+        model.add(Reshape(target_shape=(n, n, m, 1)))
+        model.add(Conv3D(filters=2 * m, kernel_size=(2, 2, m), activation="relu"))
         model.add(Permute((1, 2, 4, 3)))
         model.add(Conv3D(filters=2 * m, kernel_size=(2, 2, 2 * m), activation="relu"))
         model.add(Permute((1, 2, 4, 3)))
@@ -145,9 +152,11 @@ class DQNSingle:
         model.add(Flatten())
         model.add(Dense(32, activation="relu"))
         model.add(Dense(32, activation="relu"))
-        model.add(Dense(params.control_dimension, activation="linear"))
+        model.add(Dense(o, activation="linear"))
         model.compile(
-            loss="mse", optimizer=keras.optimizers.Adam(learning_rate=0.001), metrics=["accuracy"]
+            loss="mse",
+            optimizer=keras.optimizers.Adam(learning_rate=0.001),
+            metrics=["accuracy"],
         )
         return model
 
@@ -261,9 +270,7 @@ class DQNSingle:
             current_reward = main_model_current_rewards[idx].copy()
             current_reward[move.control] = new_reward
 
-            training_situations.append(
-                np.expand_dims(self.input_stack(move.last_state, move.current_state), axis=-1)
-            )
+            training_situations.append(self.input_stack(move.last_state, move.current_state))
             decision_situations.append(current_reward)
 
         self.model.fit(  # type: ignore
