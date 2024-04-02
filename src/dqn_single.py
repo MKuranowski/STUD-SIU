@@ -278,29 +278,24 @@ class DQNSingle:
         self.epsilon = self.parameters.initial_epsilon
 
         for episode in range(self.parameters.max_episodes):
-            logger.debug(
-                "Starting episode %d with %d moves in memory",
-                episode,
-                len(self.replay_memory),
-            )
-
             start_time = perf_counter()
             reward = self.train_episode(turtle_name, randomize_section)
             rewards.append(reward)
             elapsed = perf_counter() - start_time
 
             logger.info("Episode %d finished in %.2f s", episode, elapsed)
-            logger.debug("Mean reward - %.6f", mean(rewards))
+            logger.debug("Reward: episode %.3f, mean overall %.3f", reward, mean(rewards))
 
             # TODO: Studenci - okresowy zapis modelu
             if save_model and (episode + 1) % self.parameters.save_period == 0:
+                logger.debug("Saving model")
                 self.save_model()
 
         self.save_model()
 
     def train_episode(self, turtle_name: str, randomize_section: bool = True) -> float:
         self.env.reset(turtle_names=[turtle_name], randomize_section=randomize_section)
-        current_state = self.env.agents[turtle_name].camera_view
+        current_state = self.env.get_turtle_camera_view(turtle_name)
         last_state = current_state.copy()
         total_reward = 0.0
 
@@ -332,13 +327,13 @@ class DQNSingle:
                 len(self.replay_memory) >= self.parameters.replay_memory_min_size
                 and self.env.step_sum % self.parameters.train_period == 0
             ):
-                logger.debug("Starting minibatch training %d", self.train_count)
+                # logger.debug("Starting minibatch training %d", self.train_count)
 
                 start_time = perf_counter()
                 self.train_minibatch()
                 elapsed = perf_counter() - start_time
 
-                logger.info("Minibatch %d finished in %.2f s", self.train_count, elapsed)
+                # logger.debug("Minibatch %d finished in %.2f s", self.train_count, elapsed)
                 self.train_count += 1
 
                 if self.train_count % self.parameters.target_update_period == 0:
@@ -389,9 +384,6 @@ class DQNSingle:
             verbose=0,  # type: ignore
             shuffle=False,
         )
-
-        # TODO: Studenci ???
-        # Originally, the code here was doing nothing in a very convoluted way
 
     def save_model(self) -> None:
         self.model.save(MODELS_DIR / f"{self.signature()}.keras")  # type: ignore
