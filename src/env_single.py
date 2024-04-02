@@ -47,7 +47,7 @@ class EnvSingle(EnvBase):
         ) * self.parameters.reward_distance_rate
         reward_out_of_track = (
             self.parameters.out_of_track_fine
-            if road.penalty == 1 and abs(road.speed_x) + abs(road.speed_y) < 0.01
+            if road.penalty > 0.95 and abs(road.speed_x) + abs(road.speed_y) < 0.01
             else 0
         )
         reward = (
@@ -55,7 +55,7 @@ class EnvSingle(EnvBase):
             + reward_distance
             + reward_out_of_track
         )
-        done = reward_out_of_track > 0 or self.step_sum > self.parameters.max_steps
+        done = reward_out_of_track < 0 or self.step_sum > self.parameters.max_steps
 
         agent.camera_view = self.get_turtle_camera_view(agent.name, agent)
         return StepResult(agent.camera_view, reward, done)
