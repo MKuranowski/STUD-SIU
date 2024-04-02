@@ -61,7 +61,7 @@ class ROSSimulator(Simulator):
             sleep(WAIT_AFTER_MOVE)
 
     def get_position(self, name: str) -> Position:
-        pose = self.get_pose_service(name).result
+        pose = self.get_pose_service(name).pose
         return Position(pose.x, pose.y, pose.theta)
 
     def move_absolute(self, name: str, new_pos: Position) -> None:
