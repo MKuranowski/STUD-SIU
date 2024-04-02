@@ -369,10 +369,8 @@ class DQNSingle:
             shuffle=False,
         )
 
-        # TODO: Studenci
-        weights = np.copy(self.model.weights[0])  # type: ignore
-        weights[:, :, 8:, :, :] = np.copy(self.model.weights[0][:, :, 8:, :, :])  # type: ignore
-        self.model.weights[0] = tf.Variable(weights)  # type: ignore
+        # TODO: Studenci ???
+        # Originally, the code here was doing nothing in a very convoluted way
 
     def save_model(self) -> None:
         self.model.save(MODELS_DIR / f"{self.signature()}.keras")  # type: ignore
