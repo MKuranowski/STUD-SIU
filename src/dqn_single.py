@@ -1,11 +1,12 @@
 import logging
 from collections import deque
 from dataclasses import dataclass
+from operator import attrgetter
 from pathlib import Path
 from random import Random
 from statistics import mean
 from time import perf_counter
-from typing import Any, List, NamedTuple, Union
+from typing import Any, Iterable, List, NamedTuple, Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -112,24 +113,41 @@ class DQNSingle:
             turn=[-0.25, 0.0, 0.25][control % 3],
         )
 
-    @staticmethod
-    def input_stack(last: TurtleCameraView, current: TurtleCameraView) -> NDArrayFloat:
-        return np.stack(
-            [
-                current.penalties,
-                current.distances_to_goal,
-                current.speeds_along_azimuth,
-                current.speeds_perpendicular_azimuth,
-                last.penalties,
-                last.distances_to_goal,
-                last.speeds_along_azimuth,
-                last.speeds_perpendicular_azimuth,
-            ],
-            axis=-1,
-        )
+    def input_stack(
+        self,
+        last: TurtleCameraView,
+        current: TurtleCameraView,
+        out: Optional[NDArrayFloat] = None,
+    ) -> NDArrayFloat:
+        if out is not None:
+            assert out.shape == (self.env.parameters.grid_res, self.env.parameters.grid_res, 8)
+        else:
+            out = np.zeros((self.env.parameters.grid_res, self.env.parameters.grid_res, 8))
 
-    @staticmethod
+        out[:, :, 0] = current.penalties
+        out[:, :, 1] = current.distances_to_goal
+        out[:, :, 2] = current.speeds_along_azimuth
+        out[:, :, 3] = current.speeds_perpendicular_azimuth
+        out[:, :, 4] = last.penalties
+        out[:, :, 5] = last.distances_to_goal
+        out[:, :, 6] = last.speeds_along_azimuth
+        out[:, :, 7] = last.speeds_perpendicular_azimuth
+
+        return out
+
+    def input_stacks(
+        self,
+        len: int,
+        lasts: Iterable[TurtleCameraView],
+        currents: Iterable[TurtleCameraView],
+    ) -> NDArrayFloat:
+        out = np.zeros((len, self.env.parameters.grid_res, self.env.parameters.grid_res, 8))
+        for i, (last, current) in enumerate(zip(lasts, currents)):
+            self.input_stack(last, current, out[i])
+        return out
+
     def decision(
+        self,
         model: Sequential,
         last: TurtleCameraView,
         current: TurtleCameraView,
@@ -138,7 +156,7 @@ class DQNSingle:
         # with B representing the amount of different inputs to make predictions for.
         # Since we only do a single prediction, we have to expand input_stack from (n, n, m)
         # to (1, n, n, m).
-        prediction = model(np.expand_dims(DQNSingle.input_stack(last, current), axis=0))
+        prediction = model(np.expand_dims(self.input_stack(last, current), axis=0))
         assert prediction.shape[0] == 1
         return prediction[0].numpy()
 
@@ -340,30 +358,33 @@ class DQNSingle:
 
     def train_minibatch(self) -> None:
         moves = self.random.sample(self.replay_memory, self.parameters.minibatch_size)
-        main_model_current_rewards = [
-            self.decision(self.model, move.last_state, move.current_state) for move in moves
-        ]
-        target_model_next_rewards = [
-            self.decision(self.target_model, move.current_state, move.new_state) for move in moves
-        ]
 
-        training_situations: List[NDArrayFloat] = []
-        decision_situations: List[NDArrayFloat] = []
+        model_inputs = self.input_stacks(
+            len=len(moves),
+            lasts=map(attrgetter("last_state"), moves),
+            currents=map(attrgetter("current_state"), moves),
+        )
+
+        main_model_current_rewards = self.model(model_inputs)
+        target_model_next_rewards = self.target_model(
+            self.input_stacks(
+                len=len(moves),
+                lasts=map(attrgetter("current_state"), moves),
+                currents=map(attrgetter("new_state"), moves),
+            )
+        )
+
+        model_expected_outputs = main_model_current_rewards.numpy().copy()
 
         for idx, move in enumerate(moves):
             new_reward = move.reward
             if not move.done:
                 new_reward += self.parameters.discount * np.max(target_model_next_rewards[idx])  # type: ignore
-
-            current_reward = main_model_current_rewards[idx].copy()
-            current_reward[move.control] = new_reward
-
-            training_situations.append(self.input_stack(move.last_state, move.current_state))
-            decision_situations.append(current_reward)
+            model_expected_outputs[idx, move.control] = new_reward
 
         self.model.fit(  # type: ignore
-            x=np.stack(training_situations),
-            y=np.stack(decision_situations),
+            x=model_inputs,
+            y=model_expected_outputs,
             batch_size=self.parameters.training_batch_size,
             verbose=0,  # type: ignore
             shuffle=False,
