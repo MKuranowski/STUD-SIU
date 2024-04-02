@@ -1,22 +1,26 @@
+import logging
 from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from random import Random
 from statistics import mean
+from time import perf_counter
 from typing import Any, List, NamedTuple
 
 import numpy as np
 import numpy.typing as npt
 import tensorflow as tf  # type: ignore
+from tensorflow import keras  # type: ignore
 from tensorflow.keras.layers import Conv3D, Dense, Flatten, Permute  # type: ignore
 from tensorflow.keras.models import Sequential  # type: ignore
-from tensorflow import keras  # type: ignore
 
 from .env_base import Action, EnvBase, TurtleCameraView
 
 MODELS_DIR = Path("models")
 
 NDArrayFloat = npt.NDArray[np.float_]
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -35,7 +39,7 @@ class DQNParameters:
     """
 
     target_update_period: int = 20
-    max_episodes: int = 4_000
+    max_episodes: int = 100
     control_dimension: int = 10
     train_period: int = 4
     save_period: int = 200
@@ -159,11 +163,19 @@ class DQNSingle:
         self.epsilon = self.parameters.initial_epsilon
 
         for episode in range(self.parameters.max_episodes):
-            print(f"Episode {episode} (with {len(self.replay_memory)} moves in memory)")
-            reward = self.train_episode(turtle_name, randomize_section)
+            logger.debug(
+                "Starting episode %d with %d moves in memory",
+                episode,
+                len(self.replay_memory),
+            )
 
+            start_time = perf_counter()
+            reward = self.train_episode(turtle_name, randomize_section)
             rewards.append(reward)
-            print(f"\tmean reward up to and incl. this episode: {mean(rewards)}")
+            elapsed = perf_counter() - start_time
+
+            logger.info("Episode %d finished in %.2f s", episode, elapsed)
+            logger.debug("Mean reward - %.6f", mean(rewards))
 
             # TODO: Studenci - okresowy zapis modelu
             if save_model and (episode + 1) % self.parameters.save_period == 0:
@@ -179,10 +191,10 @@ class DQNSingle:
 
         while True:
             if self.random.random() > self.epsilon:
-                print("\tsteering from model")
+                # logger.debug("Steering from model")
                 control = int(np.argmax(self.decision(self.model, last_state, current_state)))
             else:
-                print("\tsteering randomly")
+                # logger.debug("Steering randomly")
                 control = self.random.randint(0, self.parameters.control_dimension - 1)
 
             new_state, reward, done = self.env.step(
@@ -205,12 +217,17 @@ class DQNSingle:
                 len(self.replay_memory) >= self.parameters.replay_memory_min_size
                 and self.env.step_sum % self.parameters.train_period == 0
             ):
-                print("\tminibatch training")
+                logger.debug("Starting minibatch training %d", self.train_count)
+
+                start_time = perf_counter()
                 self.train_minibatch()
+                elapsed = perf_counter() - start_time
+
+                logger.info("Minibatch %d finished in %.2f s", self.train_count, elapsed)
                 self.train_count += 1
 
                 if self.train_count % self.parameters.target_update_period == 0:
-                    print("\tupdating target model weights")
+                    logger.debug("Updating target model weights")
                     self.target_model.set_weights(self.model.get_weights())  # type: ignore
 
             if done:
@@ -267,8 +284,18 @@ class DQNSingle:
 
 
 if __name__ == "__main__":
+    from argparse import ArgumentParser
+
+    import coloredlogs  # type: ignore
+
     from .env_single import EnvSingle
     from .simulator import create_simulator
+
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
+    args = arg_parser.parse_args()
+
+    coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)  # type: ignore
 
     with create_simulator() as simulator:
         env = EnvSingle(simulator)
