@@ -417,4 +417,4 @@ if __name__ == "__main__":
         dqn = DQNSingle(env)
         if args.model:
             dqn.load_model(args.model)
-        dqn.train(turtle_name, randomize_section=False)
+        dqn.train(turtle_name, randomize_section=True)

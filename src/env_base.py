@@ -2,7 +2,7 @@ import csv
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from math import atan2, cos, dist, inf, pi, sin
-from random import uniform
+from random import uniform, randint
 from typing import Dict, Iterable, List, NamedTuple, Optional
 
 import numpy as np
@@ -176,8 +176,8 @@ class EnvBase(ABC):
         agent = self.agents[turtle_name]
 
         if randomize_section:
-            # TODO: Studenci - losowanie obszaru proporcjonalnie do liczby planowanych żółwi w obszarze
-            raise NotImplementedError
+            agent.section_id = randint(0, len(agent.route) - 1)
+            agent.section = agent.route[agent.section_id]
 
         while True:
             try:
