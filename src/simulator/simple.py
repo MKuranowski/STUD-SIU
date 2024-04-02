@@ -42,11 +42,11 @@ class SimpleSimulator(Simulator):
         """position_to_pixels converts a given position in meters, to
         corresponding x and y indices on the background image"""
         return (
-            clamp(int(p.x * self.scale), 0, self.background.shape[1]),
+            clamp(int(p.x * self.scale), 0, self.background.shape[1] - 1),
             clamp(
                 self.background.shape[0] - int(p.y * self.scale),
                 0,
-                self.background.shape[0],
+                self.background.shape[0] - 1,
             ),
         )
 
