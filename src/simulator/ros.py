@@ -74,7 +74,7 @@ class ROSSimulator(Simulator):
 
     def move_relative(self, name: str, distance: float, angle: float) -> None:
         rospy.ServiceProxy(
-            f"/{name}/teleport_absolute",
+            f"/{name}/teleport_relative",
             turtlesim.srv.TeleportRelative,
         )(linear=distance, angular=angle)
         if WAIT_AFTER_MOVE:
