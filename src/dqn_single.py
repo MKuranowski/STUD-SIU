@@ -1,3 +1,5 @@
+# pyright: basic
+
 import logging
 from collections import deque
 from dataclasses import dataclass
@@ -6,21 +8,11 @@ from pathlib import Path
 from random import Random
 from statistics import mean
 from time import perf_counter
-from typing import Any, Iterable, List, NamedTuple, Optional, Union
+from typing import Iterable, List, NamedTuple, Optional, Union, cast
 
 import numpy as np
 import numpy.typing as npt
-import tensorflow as tf  # type: ignore
-from tensorflow import keras  # type: ignore
-from tensorflow.keras import Input, Sequential  # type: ignore
-from tensorflow.keras.layers import (  # type: ignore
-    Conv2D,
-    Conv3D,
-    Dense,
-    Flatten,
-    Permute,
-    Reshape,
-)
+import keras
 
 from .env_base import Action, EnvBase, TurtleCameraView
 
@@ -68,7 +60,10 @@ class MemoryEntry(NamedTuple):
 
 class DQNSingle:
     def __init__(
-        self, env: EnvBase, parameters: DQNParameters = DQNParameters(), seed: int = 42
+        self,
+        env: EnvBase,
+        parameters: DQNParameters = DQNParameters(),
+        seed: int = 42,
     ) -> None:
         self.random = Random(seed)
         self.env = env
@@ -148,7 +143,7 @@ class DQNSingle:
 
     def decision(
         self,
-        model: Sequential,
+        model: keras.Sequential,
         last: TurtleCameraView,
         current: TurtleCameraView,
     ) -> NDArrayFloat:
@@ -160,7 +155,7 @@ class DQNSingle:
         assert prediction.shape[0] == 1
         return prediction[0].numpy()
 
-    def make_model(self) -> Sequential:
+    def make_model(self) -> keras.Sequential:
         n = self.env.parameters.grid_res
         n = self.env.parameters.grid_res
         m = 8
@@ -190,15 +185,15 @@ class DQNSingle:
         #  Trainable params: 6,074 (23.73 KB)
         #  Non-trainable params: 0 (0.00 B)
 
-        model: Any = Sequential()
-        model.add(Input(shape=(n, n, m)))
-        model.add(Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
-        model.add(Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
-        model.add(Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
-        model.add(Flatten())
-        model.add(Dense(32, activation="relu"))
-        model.add(Dense(32, activation="relu"))
-        model.add(Dense(o, activation="linear"))
+        model = keras.Sequential()
+        model.add(keras.Input(shape=(n, n, m)))
+        model.add(keras.layers.Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
+        model.add(keras.layers.Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
+        model.add(keras.layers.Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
+        model.add(keras.layers.Flatten())
+        model.add(keras.layers.Dense(32, activation="relu"))
+        model.add(keras.layers.Dense(32, activation="relu"))
+        model.add(keras.layers.Dense(o, activation="linear"))
         model.compile(
             loss="mse",
             optimizer=keras.optimizers.Adam(learning_rate=0.001),
@@ -206,7 +201,7 @@ class DQNSingle:
         )
         return model
 
-    def make_model_with_pointless_dimension(self) -> Sequential:
+    def make_model_with_pointless_dimension(self) -> keras.Sequential:
         # NOTE: This is the original (prof-provided) sequential model definition.
         #       It seems to pointlessly inflate initial convolutions by a whole dimension (?)
         #       I'm not an expert, but in case the model with Conv2D misbehaves, maybe we should
@@ -247,18 +242,18 @@ class DQNSingle:
         # Trainable params: 6,074 (23.73 KB)
         # Non-trainable params: 0 (0.00 B)
 
-        model: Any = Sequential()
-        model.add(Input(shape=(n, n, m)))
-        model.add(Reshape(target_shape=(n, n, m, 1)))
-        model.add(Conv3D(filters=2 * m, kernel_size=(2, 2, m), activation="relu"))
-        model.add(Permute((1, 2, 4, 3)))
-        model.add(Conv3D(filters=2 * m, kernel_size=(2, 2, 2 * m), activation="relu"))
-        model.add(Permute((1, 2, 4, 3)))
-        model.add(Conv3D(filters=2 * m, kernel_size=(2, 2, 2 * m), activation="relu"))
-        model.add(Flatten())
-        model.add(Dense(32, activation="relu"))
-        model.add(Dense(32, activation="relu"))
-        model.add(Dense(o, activation="linear"))
+        model = keras.Sequential()
+        model.add(keras.Input(shape=(n, n, m)))
+        model.add(keras.layers.Reshape(target_shape=(n, n, m, 1)))
+        model.add(keras.layers.Conv3D(filters=2 * m, kernel_size=(2, 2, m), activation="relu"))
+        model.add(keras.layers.Permute((1, 2, 4, 3)))
+        model.add(keras.layers.Conv3D(filters=2 * m, kernel_size=(2, 2, 2 * m), activation="relu"))
+        model.add(keras.layers.Permute((1, 2, 4, 3)))
+        model.add(keras.layers.Conv3D(filters=2 * m, kernel_size=(2, 2, 2 * m), activation="relu"))
+        model.add(keras.layers.Flatten())
+        model.add(keras.layers.Dense(32, activation="relu"))
+        model.add(keras.layers.Dense(32, activation="relu"))
+        model.add(keras.layers.Dense(o, activation="linear"))
         model.compile(
             loss="mse",
             optimizer=keras.optimizers.Adam(learning_rate=0.001),
@@ -283,8 +278,13 @@ class DQNSingle:
             rewards.append(reward)
             elapsed = perf_counter() - start_time
 
-            logger.info("Episode %d finished in %.2f s", episode, elapsed)
-            logger.debug("Reward: episode %.3f, mean overall %.3f", reward, mean(rewards))
+            logger.info(
+                "Episode %d finished in %.2f s. Reward from episode %.3f, mean overall %.3f.",
+                episode,
+                elapsed,
+                reward,
+                mean(rewards),
+            )
 
             # TODO: Studenci - okresowy zapis modelu
             if save_model and (episode + 1) % self.parameters.save_period == 0:
@@ -301,10 +301,8 @@ class DQNSingle:
 
         while True:
             if self.random.random() > self.epsilon:
-                # logger.debug("Steering from model")
                 control = int(np.argmax(self.decision(self.model, last_state, current_state)))
             else:
-                # logger.debug("Steering randomly")
                 control = self.random.randint(0, self.parameters.control_dimension - 1)
 
             new_state, reward, done = self.env.step(
@@ -327,18 +325,16 @@ class DQNSingle:
                 len(self.replay_memory) >= self.parameters.replay_memory_min_size
                 and self.env.step_sum % self.parameters.train_period == 0
             ):
-                # logger.debug("Starting minibatch training %d", self.train_count)
-
                 start_time = perf_counter()
                 self.train_minibatch()
                 elapsed = perf_counter() - start_time
 
-                # logger.debug("Minibatch %d finished in %.2f s", self.train_count, elapsed)
+                logger.debug("Minibatch %d finished in %.2f s", self.train_count, elapsed)
                 self.train_count += 1
 
                 if self.train_count % self.parameters.target_update_period == 0:
                     logger.debug("Updating target model weights")
-                    self.target_model.set_weights(self.model.get_weights())  # type: ignore
+                    self.target_model.set_weights(self.model.get_weights())
 
             if done:
                 break
@@ -374,29 +370,29 @@ class DQNSingle:
         for idx, move in enumerate(moves):
             new_reward = move.reward
             if not move.done:
-                new_reward += self.parameters.discount * np.max(target_model_next_rewards[idx])  # type: ignore
+                new_reward += self.parameters.discount * np.max(target_model_next_rewards[idx])
             model_expected_outputs[idx, move.control] = new_reward
 
-        self.model.fit(  # type: ignore
+        self.model.fit(
             x=model_inputs,
             y=model_expected_outputs,
             batch_size=self.parameters.training_batch_size,
-            verbose=0,  # type: ignore
+            verbose=0,
             shuffle=False,
         )
 
     def save_model(self) -> None:
-        self.model.save(MODELS_DIR / f"{self.signature()}.keras")  # type: ignore
+        self.model.save(MODELS_DIR / f"{self.signature()}.keras")
 
     def load_model(self, filename: Union[str, Path]) -> None:
-        self.model = keras.models.load_model(filename)  # type: ignore
-        self.target_model = keras.models.clone_model(self.model)  # type: ignore
+        self.model = cast(keras.Sequential, keras.models.load_model(filename))
+        self.target_model = keras.models.clone_model(self.model)
 
 
 if __name__ == "__main__":
     from argparse import ArgumentParser
 
-    import coloredlogs  # type: ignore
+    import coloredlogs
 
     from .env_single import EnvSingle
     from .simulator import create_simulator
@@ -406,7 +402,7 @@ if __name__ == "__main__":
     arg_parser.add_argument("-m", "--model", help="load model from this path", type=Path)
     args = arg_parser.parse_args()
 
-    coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)  # type: ignore
+    coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
 
     with create_simulator() as simulator:
         env = EnvSingle(simulator)
