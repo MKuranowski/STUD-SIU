@@ -221,57 +221,6 @@ class DQNSingle:
         o = self.parameters.control_dimension
 
         # Model: "sequential"
-        # ┏━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
-        # ┃ Layer (type)      ┃ Output Shape     ┃ Param # ┃
-        # ┡━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩
-        # │ (input)           │ (None, 5, 5, 8)  │       0 │
-        # ├───────────────────┼──────────────────┼─────────┤
-        # │ conv2d (Conv2D)   │ (None, 4, 4, 16) │     528 │
-        # ├───────────────────┼──────────────────┼─────────┤
-        # │ conv2d_1 (Conv2D) │ (None, 3, 3, 16) │   1,040 │
-        # ├───────────────────┼──────────────────┼─────────┤
-        # │ conv2d_2 (Conv2D) │ (None, 2, 2, 16) │   1,040 │
-        # ├───────────────────┼──────────────────┼─────────┤
-        # │ flatten (Flatten) │ (None, 64)       │       0 │
-        # ├───────────────────┼──────────────────┼─────────┤
-        # │ dense (Dense)     │ (None, 32)       │   2,080 │
-        # ├───────────────────┼──────────────────┼─────────┤
-        # │ dense_1 (Dense)   │ (None, 32)       │   1,056 │
-        # ├───────────────────┼──────────────────┼─────────┤
-        # │ dense_2 (Dense)   │ (None, 10)       │     330 │
-        # └───────────────────┴──────────────────┴─────────┘
-        #  Total params: 6,074 (23.73 KB)
-        #  Trainable params: 6,074 (23.73 KB)
-        #  Non-trainable params: 0 (0.00 B)
-
-        model = keras.Sequential()
-        model.add(keras.Input(shape=(n, n, m)))
-        model.add(keras.layers.Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
-        model.add(keras.layers.Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
-        model.add(keras.layers.Conv2D(filters=2 * m, kernel_size=(2, 2), activation="relu"))
-        model.add(keras.layers.Flatten())
-        model.add(keras.layers.Dense(32, activation="relu"))
-        model.add(keras.layers.Dense(32, activation="relu"))
-        model.add(keras.layers.Dense(o, activation="linear"))
-        model.compile(
-            loss="mse",
-            optimizer=keras.optimizers.Adam(learning_rate=0.001),
-            metrics=["accuracy"],
-        )
-        return model
-
-    def make_model_with_pointless_dimension(self) -> keras.Sequential:
-        # NOTE: This is the original (prof-provided) sequential model definition.
-        #       It seems to pointlessly inflate initial convolutions by a whole dimension (?)
-        #       I'm not an expert, but in case the model with Conv2D misbehaves, maybe we should
-        #       revert to this one?
-
-        n = self.env.parameters.grid_res
-        n = self.env.parameters.grid_res
-        m = 8
-        o = self.parameters.control_dimension
-
-        # Model: "sequential"
         # ┏━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━┓
         # ┃ Layer (type)        ┃ Output Shape        ┃ Param # ┃
         # ┡━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━┩
@@ -293,13 +242,11 @@ class DQNSingle:
         # ├─────────────────────┼─────────────────────┼─────────┤
         # │ dense (Dense)       │ (None, 32)          │   2,080 │
         # ├─────────────────────┼─────────────────────┼─────────┤
-        # │ dense_1 (Dense)     │ (None, 32)          │   1,056 │
-        # ├─────────────────────┼─────────────────────┼─────────┤
-        # │ dense_2 (Dense)     │ (None, 10)          │     330 │
+        # │ dense_1 (Dense)     │ (None, 6)           │     198 │
         # └─────────────────────┴─────────────────────┴─────────┘
-        # Total params: 6,074 (23.73 KB)
-        # Trainable params: 6,074 (23.73 KB)
-        # Non-trainable params: 0 (0.00 B)
+        #  Total params: 4,886 (19.09 KB)
+        #  Trainable params: 4,886 (19.09 KB)
+        #  Non-trainable params: 0 (0.00 B)
 
         model = keras.Sequential()
         model.add(keras.Input(shape=(n, n, m)))
@@ -310,7 +257,6 @@ class DQNSingle:
         model.add(keras.layers.Permute((1, 2, 4, 3)))
         model.add(keras.layers.Conv3D(filters=2 * m, kernel_size=(2, 2, 2 * m), activation="relu"))
         model.add(keras.layers.Flatten())
-        model.add(keras.layers.Dense(32, activation="relu"))
         model.add(keras.layers.Dense(32, activation="relu"))
         model.add(keras.layers.Dense(o, activation="linear"))
         model.compile(
