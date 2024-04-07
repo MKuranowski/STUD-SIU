@@ -8,7 +8,7 @@ from typing_extensions import Self
 
 from .simulator import CameraCell, Color, ColorChecker, Position, Simulator
 
-USE_BROKEN_ROS_DISTANCE_ALGORITHM = False
+USE_BROKEN_ROS_DISTANCE_ALGORITHM = True
 
 
 Number = TypeVar("Number", int, float)
@@ -213,11 +213,11 @@ class SimpleSimulator(Simulator):
 
         # Introduce error due to x-coordinate truncation from
         # https://github.com/RCPRG-ros-pkg/ros_tutorials/blob/noetic-devel/turtlesim/src/turtle_frame.cpp#L419
-        goal_x_px = int(goal.x) * self.scale
+        goal_x_px = int(goal.x * self.scale)
 
-        # Introduce error due to y-coordinate truncation and +1 from
+        # Introduce error due to y-coordinate truncation from
         # https://github.com/RCPRG-ros-pkg/ros_tutorials/blob/noetic-devel/turtlesim/src/turtle_frame.cpp#L420
-        goal_y_px = int(height_m + 1) * self.scale - int(goal.y * self.scale)
+        goal_y_px = int(height_m * self.scale) - int(goal.y * self.scale)
 
         return (
             dist((goal_x_px, goal_y_px), (cell_center_bg_x_px, cell_center_bg_y_px)) / self.scale
