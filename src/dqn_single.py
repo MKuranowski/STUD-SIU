@@ -39,7 +39,7 @@ class DQNParameters:
     """
 
     target_update_period: int = 20
-    max_episodes: int = 4_000
+    max_episodes: int = 10_000
     control_dimension: int = 6
     train_period: int = 4
     save_period: int = 200
