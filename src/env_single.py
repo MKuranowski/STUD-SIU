@@ -66,7 +66,7 @@ class EnvSingle(EnvBase):
 
         done = (
             reward_out_of_track < 0
-            or road.distance_to_goal < 1.0
+            or road.distance_to_goal <= self.parameters.goal_radius
             or self.step_sum > self.parameters.max_steps
         )
 

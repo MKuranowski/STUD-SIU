@@ -86,6 +86,11 @@ class Parameters:
     max_steps: int = 200
     max_random_rotation: float = pi / 6
 
+    goal_radius: float = 1.0
+    """How close does an agent has to be to its goal to assume
+    that the goal has been reached? [Meters]
+    """
+
 
 class Action(NamedTuple):
     turtle_name: str
@@ -288,6 +293,14 @@ class EnvBase(ABC):
 
     def base_camera_matrix(self) -> NDArrayFloat:
         return np.zeros((self.parameters.grid_res, self.parameters.grid_res))
+
+    def goal_reached(self, turtle_name: str, agent: Optional[TurtleAgent] = None) -> bool:
+        agent = agent or self.agents[turtle_name]
+        distance_to_goal = dist(
+            (agent.pose.x, agent.pose.y),
+            (agent.section.goal_x, agent.section.goal_y),
+        )
+        return distance_to_goal <= self.parameters.goal_radius
 
     def step(self, actions: Iterable[Action], realtime: bool = False) -> Dict[str, StepResult]:
         self.step_sum += 1
