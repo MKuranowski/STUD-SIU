@@ -26,23 +26,82 @@ logger = logging.getLogger(__name__)
 @dataclass(frozen=True)
 class DQNParameters:
     discount: float = 0.9
+    """Discount for next-step reward (from the target_model).
+
+    Tweakable, default 0.9.
+    """
+
     initial_epsilon: float = 1.0
+    """Initial epsilon - ratio of random-provided over model-provided models.
+
+    Not tweakable.
+    """
+
     epsilon_decay: float = 0.99
+    """Epsilon decay rate. With every move, epsilon is set to `epsilon * epsilon_decay`.
+
+    Not tweakable.
+    """
+
     epsilon_min: float = 0.05
+    """Lowest possible epsilon.
+
+    Not tweakable.
+    """
+
     replay_memory_max_size: int = 20_000
+    """Maximum cached moves for learning.
+
+    Tweakable, default 20 000."""
+
     replay_memory_min_size: int = 4_000
+    """Minimum cached moves for before learning can commence.
+
+    Tweakable, default 4 000.
+    """
+
     minibatch_size: int = 32
+    """How many moves should be randomly drawn for model learning inside a minibatch?
+
+    Tweakable, default 32.
+    """
 
     training_batch_divisor: int = 4
     """Used for calculating the training batch size, using the following formula:
-    training_batch_size = minibatch_size // training_batch_divisor
+    training_batch_size = minibatch_size // training_batch_divisor.
+
+    Tweakable (?), default 4.
     """
 
     target_update_period: int = 20
-    max_episodes: int = 10_000
+    """After every target_update_period mini-batches, the target model is updated.
+
+    Tweakable, default 20.
+    """
+
+    max_episodes: int = 4_000
+    """Limit for DQN algorithm episodes.
+
+    Not tweakable.
+    """
+
     control_dimension: int = 6
+    """Amount of possible actions.
+
+    Technically tweakable, but limited by DQNSingle.control_to_action, default 6.
+    """
+
     train_period: int = 4
-    save_period: int = 200
+    """After every train_period steps, the model is updated.
+
+    Tweakable, default 4.
+    """
+
+    save_period: int = 250
+    """After every save_period episodes, the model is saved to the disk.
+
+    Not tweakable.
+    """
 
     @property
     def training_batch_size(self) -> int:

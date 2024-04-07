@@ -74,21 +74,84 @@ class TurtleAgent:
 @dataclass(frozen=True)
 class Parameters:
     grid_res: int = 5
+    """Resolution of the turtle's camera view.
+    A cam_res by cam_res windows is compressed into a grid_res by grid_res cell matrix.
+
+    Tweakable, default 5.
+    """
+
     cam_res: int = 200
+    """Resolution of the turtle's camera, in pixels.
+    Turtles will be able to see an image cam_res by cam_res pixels in front of them.
+
+    Tweakable, default 200.
+    """
+
     seconds_per_step: float = 1.0
+    """Time-wise steering discretization - how much time should pass
+    between steps, in seconds.
+
+    Not tweakable.
+    """
+
     reward_forward_rate: float = 0.5
+    """Reward rate for moving alongside the suggested axis.
+
+    Tweakable, at least 0.5.
+    """
+
     reward_reverse_rate: float = -10.0
+    """Reward rate for moving opposite to the suggested axis.
+
+    Tweakable, at most -10.
+    """
+
     reward_speeding_rate: float = -10.0
+    """Reward rate for moving with a higher-than-suggested speed.
+
+    Tweakable, at most -10.
+    """
+
     reward_distance_rate: float = 2.0
+    """Reward rate for moving towards the goal.
+
+    Tweakable, at least 2.
+    """
+
     out_of_track_fine: float = -10.0
+    """Total reward for falling outside of the track.
+
+    Tweakable, at most -10.
+    """
+
     collision_distance: float = 1.5
+    """Distance between two turtles which cause a collision to be detected, in meters.
+
+    Not tweakable.
+    """
+
     detect_collisions: bool = False
+    """Enable collision checking."""
+
     max_steps: int = 200
+    """Max steps for a turtle to reach its goal.
+
+    Tweakable, default 20.
+    """
+
     max_random_rotation: float = pi / 6
+    """Maximum deviation for turtle's initial heading, radians.
+    Turtles spawn heading dead-on towards the goal, with a uniformly-chosen deviation
+    in the range [-max_random_rotation, max_random_rotation].
+
+    Not tweakable.
+    """
 
     goal_radius: float = 1.0
     """How close does an agent has to be to its goal to assume
-    that the goal has been reached? [Meters]
+    that the goal has been reached, in meters?
+
+    Non-standard, tweakable, default 1.
     """
 
 
