@@ -6,8 +6,8 @@ from collections import deque
 from tensorflow import keras, constant
 from keras.models import Sequential
 from keras.layers import Conv3D, Permute, Dense, Flatten
-from turtlesim_env_base import TurtlesimEnvBase
-import turtlesim_env_single
+from .turtlesim_env_base import TurtlesimEnvBase
+from . import turtlesim_env_single
 
 class DqnSingle():
     # inicjalizacja parametrami domyślnymi, przechowanie dostarczonej referencji na środowisko symulacyjne

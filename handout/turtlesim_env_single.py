@@ -4,7 +4,7 @@ import rospy
 from turtlesim.msg import Pose
 from geometry_msgs.msg import Twist
 
-from turtlesim_env_base import TurtlesimEnvBase, TurtleAgent
+from .turtlesim_env_base import TurtlesimEnvBase, TurtleAgent
 
 class TurtlesimEnvSingle(TurtlesimEnvBase):
     def __init__(self):
