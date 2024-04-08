@@ -8,7 +8,7 @@ import rospy
 import turtlesim
 import numpy as np
 from cv_bridge import CvBridge
-from turtlesim.msg import Pose
+from turtlesim.msg import Color, Pose
 from TurtlesimSIU import TurtlesimSIU
 
 class TurtleAgent:      # struktura ze stałymi i bieżącymi atrybutami agenta
@@ -52,6 +52,7 @@ class TurtlesimEnvBase(metaclass=abc.ABCMeta):
         self.agents={}
         with open(routes_fname,encoding='utf-8-sig') as f:  # załadowanie tras agentów
             reader=csv.reader(f,delimiter=';')
+            next(reader, None)  # XXX: Code fix - skip header row
             for row in reader:
                 section=(int(row[1]),float(row[2]),float(row[3]),float(row[4]),float(row[5]),float(row[6]),float(row[7]))
                 if row[0] not in self.routes:
@@ -132,9 +133,9 @@ class TurtlesimEnvBase(metaclass=abc.ABCMeta):
         sys.exit(0)
     def get_road(self,tname):
         agent = self.agents[tname]
-        print(tname,agent.color_api)
+        # print(tname,agent.color_api)  # XXX: Stop spamming
         rospy.sleep(self.WAIT_AFTER_MOVE)                       # bez tego color_api.check() nie wyrabia
-        color = agent.color_api.check()                         # kolor planszy pod żółwiem
+        color = agent.color_api.check() or Color()              # kolor planszy pod żółwiem
         fx = .02*(color.r-200)                                  # składowa x zalecanej prędkości <-1;1>
         fy = .02*(color.b-200)                                  # składowa y zalecanej prędkości <-1;1>
         fa = color.g/255.0                                      # mnożnik kary za naruszenie ograniczeń prędkości
