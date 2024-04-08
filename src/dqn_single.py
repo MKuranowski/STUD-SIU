@@ -289,11 +289,11 @@ class DQNSingle:
             elapsed = perf_counter() - start_time
 
             logger.info(
-                "Episode %d finished in %.2f s. Reward from episode %.3f, mean overall %.3f.",
+                "Episode %d finished in %.2f s. Reward from episode %.3f, mean from last 20 %.3f.",
                 episode,
                 elapsed,
                 reward,
-                mean(rewards),
+                mean(rewards[-20:]),
             )
 
             # TODO: Studenci - okresowy zapis modelu
