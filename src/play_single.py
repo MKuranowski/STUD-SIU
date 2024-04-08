@@ -2,9 +2,11 @@
 
 from pathlib import Path
 import logging
+import math
 
 import numpy as np
 
+from .env_base import Parameters
 from .dqn_single import DQNSingle
 
 
@@ -54,8 +56,11 @@ if __name__ == "__main__":
 
     coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
 
+    parameters = Parameters(
+        max_steps=math.inf
+    )
     with create_simulator() as simulator:
-        env = EnvSingle(simulator)
+        env = EnvSingle(simulator, parameters=parameters)
         env.setup("routes.csv", agent_limit=1)
         env.reset()
 
