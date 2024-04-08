@@ -47,7 +47,7 @@ class EnvSingle(EnvBase):
         else:
             reward_direction = 0
         reward_distance = (
-            road.distance_to_goal - distance_to_goal_before
+            distance_to_goal_before - road.distance_to_goal
         ) * self.parameters.reward_distance_rate
         reward_out_of_track = (
             self.parameters.out_of_track_fine
@@ -59,10 +59,6 @@ class EnvSingle(EnvBase):
             + reward_distance
             + reward_out_of_track
         )
-
-        close_to_goal = road.distance_to_goal < 1.0
-        if close_to_goal:
-            logger.warn("Goal reached!")
 
         done = (
             reward_out_of_track < 0
