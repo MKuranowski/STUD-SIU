@@ -73,7 +73,7 @@ class DqnSingle():
         self.model.add(Dense(self.CTL_DIM,activation="linear"))                     # wyjście Q dla każdej z CTL_DIM decyzji
         self.model.compile(loss='mse',optimizer=keras.optimizers.Adam(learning_rate=0.001),metrics=["accuracy"])
     # uczenie od podstaw: generuj kroki, gromadź pomiary, ucz na próbce losowej, okresowo aktualizuj model pomocniczy
-    def train_main(self,tname:str,save_model=True):             # TODO STUDENCI okresowy zapis modelu
+    def train_main(self,tname:str,save_model=True):
         self.target_model=keras.models.clone_model(self.model)                      # model pomocniczy (wolnozmienny)
         self.replay_memory=deque(maxlen=self.REPLAY_MEM_SIZE_MAX)                   # historia kroków
         episode_rewards=np.zeros(self.EPISODES_MAX)*np.nan                          # historia nagród w epizodach
@@ -114,6 +114,14 @@ class DqnSingle():
                     epsilon=max(self.EPS_MIN,epsilon)                               # podtrzymaj losowość ruchów
             episode_rewards[episode]=episode_rwrd
             print(f' {np.nanmean(episode_rewards[episode-19:episode+1])/20:.2f}')   # śr. krocząca nagrody za 20 kroków
+
+            # TODO STUDENCI okresowy zapis modelu
+            if train_cnt % self.SAVE_MODEL_EVERY == 0:
+                self.model.save(f"models/{self.xid()}.h5")
+
+        # Zapis modelu również po zakończeniu uczenia
+        self.model.save(f"models/{self.xid()}.h5")
+
     # przygotowuje próbkę uczącą i wywołuje douczanie modelu
     def do_train(self, episode=None):
         minibatch=random.sample(self.replay_memory,self.MINIBATCH_SIZE)             # losowy podzbiór kroków z historii

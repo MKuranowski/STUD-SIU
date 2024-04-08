@@ -3,6 +3,7 @@ import abc
 import sys
 import csv
 import signal
+import random
 import rospy
 import turtlesim
 import numpy as np
@@ -91,7 +92,7 @@ class TurtlesimEnvBase(metaclass=abc.ABCMeta):
             elif sections[tidx]=='random':                  # żółw pozycjonowany w losowym segmencie jego trasy
                 # TODO STUDENCI
                 # losowanie obszaru proporcjonalnie do liczby planowanych żółwi w obszarze
-                sec_id=...
+                sec_id = random.randint(0, len(self.routes[agent.route]) - 1)
             else:                                           # żółw pozycjonowany we wskazanym segmencie (liczone od 0)
                 sec_id=sections[tidx]
             section=self.routes[agent.route][sec_id]        # przypisanie sekcji, w której się odrodzi
