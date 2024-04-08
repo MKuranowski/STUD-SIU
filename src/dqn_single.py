@@ -1,6 +1,7 @@
 # pyright: basic
 
 import logging
+import os
 from collections import deque
 from dataclasses import dataclass
 from operator import attrgetter
@@ -9,6 +10,10 @@ from random import Random
 from statistics import mean
 from time import perf_counter
 from typing import Iterable, List, NamedTuple, Optional, Union, cast
+
+
+if "KERAS_BACKEND" not in os.environ:
+    os.environ["KERAS_BACKEND"] = "torch"
 
 import numpy as np
 import numpy.typing as npt
@@ -212,7 +217,7 @@ class DQNSingle:
         # to (1, n, n, m).
         prediction = model(np.expand_dims(self.input_stack(last, current), axis=0))
         assert prediction.shape[0] == 1
-        return prediction[0].numpy()
+        return prediction[0].cpu().detach().numpy()
 
     def make_model(self) -> keras.Sequential:
         n = self.env.parameters.grid_res
@@ -361,13 +366,18 @@ class DQNSingle:
             currents=map(attrgetter("current_state"), moves),
         )
 
-        main_model_current_rewards = self.model(model_inputs)
-        target_model_next_rewards = self.target_model(
-            self.input_stacks(
-                len=len(moves),
-                lasts=map(attrgetter("current_state"), moves),
-                currents=map(attrgetter("new_state"), moves),
+        main_model_current_rewards = self.model(model_inputs).cpu().detach()
+        target_model_next_rewards = (
+            self.target_model(
+                self.input_stacks(
+                    len=len(moves),
+                    lasts=map(attrgetter("current_state"), moves),
+                    currents=map(attrgetter("new_state"), moves),
+                )
             )
+            .cpu()
+            .detach()
+            .numpy()
         )
 
         model_expected_outputs = main_model_current_rewards.numpy().copy()
