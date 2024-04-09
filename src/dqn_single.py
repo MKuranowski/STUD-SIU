@@ -387,7 +387,7 @@ class DQNSingle:
         )
 
     def save_model(self) -> None:
-        self.model.save(MODELS_DIR / f"{self.signature()}.keras")
+        self.model.save(MODELS_DIR / f"{self.signature()}.h5")
 
     def load_model(self, filename: Union[str, Path]) -> None:
         self.model = cast(keras.Sequential, keras.models.load_model(filename))
