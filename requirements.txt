@@ -1,8 +1,6 @@
 opencv-python
+tensorflow
 numpy
 typing_extensions
 pygame
 coloredlogs
-torch
-keras>=3.0
-packaging
