@@ -1,6 +1,0 @@
-opencv-python
-tensorflow
-numpy
-typing_extensions
-pygame
-coloredlogs

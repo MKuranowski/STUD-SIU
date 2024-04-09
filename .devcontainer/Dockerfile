@@ -25,10 +25,18 @@ RUN apt-get install -qy --no-install-recommends \
     python3-catkin-tools \
     python3-pip
 
-RUN pip install tensorflow
-
 WORKDIR /opt/siu_ws/src
 RUN git clone --branch noetic-devel --depth 1 https://github.com/RCPRG-ROS-pkg/ros_tutorials
 WORKDIR /opt/siu_ws
 RUN ["sh", "-c", "set -ex; . /opt/ros/noetic/setup.sh; catkin build"]
 RUN ln -fs "$WORKSPACE_FOLDER/roads.png" /opt/siu_ws/src/ros_tutorials/turtlesim/images/roads.png
+
+# FIXME: This should use requirements.cpu_only.txt
+RUN pip install -U \
+    "typing_extensions==4.5.0" \
+    "pygame==2.5.2" \
+    "coloredlogs==15.0.1" \
+    "opencv-python==4.9.0.80" \
+    "numpy==1.24.3" \
+    "keras==2.13.1" \
+    "tensorflow-cpu==2.13.1"
