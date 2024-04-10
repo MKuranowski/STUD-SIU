@@ -107,6 +107,16 @@ class DQNParameters:
     def training_batch_size(self) -> int:
         return self.minibatch_size // self.training_batch_divisor
 
+    def signature(self) -> str:
+        return (
+            f"D{self.discount}"
+            f"_M{self.replay_memory_max_size}"
+            f"_m{self.replay_memory_min_size}"
+            f"_B{self.minibatch_size}"
+            f"_U{self.target_update_period}"
+            f"_T{self.train_period}"
+        )
+
 
 class MemoryEntry(NamedTuple):
     last_state: TurtleCameraView
@@ -136,28 +146,7 @@ class DQNSingle:
         self.epsilon = self.parameters.initial_epsilon
 
     def signature(self) -> str:
-        return (
-            f"dqns"
-            f"-Gr{self.env.parameters.grid_res}"
-            f"-Cr{self.env.parameters.cam_res}"
-            f"-Rf{self.env.parameters.reward_forward_rate}"
-            f"-Rr{self.env.parameters.reward_reverse_rate}"
-            f"-Rs{self.env.parameters.reward_speeding_rate}"
-            f"-Rd{self.env.parameters.reward_distance_rate}"
-            f"-Of{self.env.parameters.out_of_track_fine}"
-            f"-Cd{self.env.parameters.collision_distance}"
-            f"-Ms{self.env.parameters.max_steps}"
-            f"-Ro{self.env.parameters.max_random_rotation}"
-            f"-D{self.parameters.discount}"
-            f"-E{self.parameters.epsilon_decay}"
-            f"-e{self.parameters.epsilon_min}"
-            f"-M{self.parameters.replay_memory_max_size}"
-            f"-m{self.parameters.replay_memory_min_size}"
-            f"-B{self.parameters.minibatch_size}"
-            f"-U{self.parameters.target_update_period}"
-            f"-P{self.parameters.max_episodes}"
-            f"-T{self.parameters.train_period}"
-        )
+        return f"dqns-{self.env.parameters.signature()}_{self.parameters.signature()}"
 
     @staticmethod
     def control_to_action(turtle_name: str, control: int) -> Action:

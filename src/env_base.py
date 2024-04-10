@@ -154,6 +154,19 @@ class Parameters:
     Non-standard, tweakable, default 1.
     """
 
+    def signature(self) -> str:
+        return (
+            f"Gr{self.grid_res}"
+            f"_Cr{self.cam_res}"
+            f"_Sw{self.reward_forward_rate}"
+            f"_Sv{self.reward_reverse_rate}"
+            f"_Sf{self.reward_speeding_rate}"
+            f"_Dr{self.reward_distance_rate}"
+            f"_Oo{self.out_of_track_fine}"
+            f"_Ms{self.max_steps}"
+            f"_Pb{pi / self.max_random_rotation:.0f}"
+        )
+
 
 class Action(NamedTuple):
     turtle_name: str
