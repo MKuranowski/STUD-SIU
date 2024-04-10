@@ -106,7 +106,7 @@ if __name__ == "__main__":
         dqn_parameters = DQNParameters(**dqn_parameters_from_distribution)
         logger.info('Iteration: %d', iteration)
         logger.info('DQN parameters: %s', dqn_parameters)
-        logger.info('Envirnoment parameters: %s', parameters)
+        logger.info('Environment parameters: %s', parameters)
         result = train(parameters, dqn_parameters)
         logger.info('Result: %s', result)
         results.append(result)
