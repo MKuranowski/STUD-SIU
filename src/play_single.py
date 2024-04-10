@@ -44,7 +44,7 @@ class PlaySingle(DQNSingle):
                     total_laps += 1
                     logger.info("Lap %d completed", total_laps)
 
-        return total_reward
+        return total_reward * (1 + total_laps)
 
 
 if __name__ == "__main__":
