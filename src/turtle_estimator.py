@@ -1,9 +1,11 @@
 # pyright: basic
 
 import logging
+import dataclasses
 from pathlib import Path
 from random import Random
 from typing import NamedTuple
+from multiprocessing.pool import Pool
 
 import numpy as np
 import numpy.typing as npt
@@ -26,6 +28,10 @@ class ModelResult(NamedTuple):
     dqn_parameters: DQNParameters
 
 
+def multithreaded_train(args: tuple[Parameters, DQNParameters]) -> ModelResult:
+    return train(args[0], args[1])
+
+
 def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
     with create_simulator() as simulator:
         env = EnvSingle(
@@ -40,6 +46,9 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
         )
         model.train(turtle_name, randomize_section=True)
         model.random = Random(0)
+        restricted_parameters = dataclasses.asdict(parameters)
+        restricted_parameters['max_steps'] = 4_000
+        model.env.parameters = Parameters(**restricted_parameters)
         env.reset()
         reward = model.play_until_crash(max_laps=4)
         return ModelResult(
@@ -65,8 +74,8 @@ if __name__ == "__main__":
     coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
 
     seed = 42
-    iterations = 4
-    max_episodes = 10
+    iterations = 10
+    max_episodes = 100
 
     parameters_distributions = {
         'grid_res': range(4, 10),
@@ -95,21 +104,18 @@ if __name__ == "__main__":
 
     results: list[ModelResult] = []
 
-    for iteration in range(iterations):
-        parameters_from_distribution = {
-            key: random.choice(values) for key, values in parameters_distributions.items()
-        }
-        parameters = Parameters(**parameters_from_distribution)
-        dqn_parameters_from_distribution = {
-            key: random.choice(values) for key, values in dqn_parameters_distributions.items()
-        }
-        dqn_parameters = DQNParameters(**dqn_parameters_from_distribution)
-        logger.info('Iteration: %d', iteration)
-        logger.info('DQN parameters: %s', dqn_parameters)
-        logger.info('Environment parameters: %s', parameters)
-        result = train(parameters, dqn_parameters)
-        logger.info('Result: %s', result)
-        results.append(result)
+    parameters_from_distributions = [
+        Parameters(**{key: random.choice(values) for key, values in parameters_distributions.items()})
+        for _ in range(iterations)
+    ]
+
+    dqn_parameters_from_distributions = [
+        DQNParameters(**{key: random.choice(values) for key, values in dqn_parameters_distributions.items()})
+        for _ in range(iterations)
+    ]
+
+    with Pool() as pool:
+        results = pool.map(multithreaded_train, zip(parameters_from_distributions, dqn_parameters_from_distributions))
 
     for i, result in enumerate(sorted(results, key=lambda x: x.reward, reverse=True), start=1):
         logger.info('%d) %f %s', i, result.reward, result.signature)
