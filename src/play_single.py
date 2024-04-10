@@ -3,6 +3,7 @@
 from pathlib import Path
 import logging
 import math
+from typing import Optional
 
 import numpy as np
 
@@ -14,19 +15,21 @@ logger = logging.getLogger(__name__)
 
 
 class PlaySingle(DQNSingle):
-    def play_until_crash(self, turtle_name: str = "") -> None:
+    def play_until_crash(self, turtle_name: str = "", max_laps: Optional[int] = None) -> float:
         turtle_name = turtle_name or next(iter(self.env.agents))
         current_state = self.env.get_turtle_camera_view(turtle_name)
         last_state = current_state
         total_laps = 0
+        total_reward = 0.0
 
-        while True:
+        while not max_laps or total_laps <= max_laps:
             control = int(np.argmax(self.decision(self.model, last_state, current_state)))
 
             last_state = current_state
-            current_state, _, done = self.env.step(
+            current_state, reward, done = self.env.step(
                 [self.control_to_action(turtle_name, control)],
             )[turtle_name]
+            total_reward += reward
 
             if done and not self.env.goal_reached(turtle_name):
                 logger.error("Turtle crashed after %d total laps - exiting", total_laps)
@@ -40,6 +43,8 @@ class PlaySingle(DQNSingle):
                 if agent.section_id == 0:
                     total_laps += 1
                     logger.info("Lap %d completed", total_laps)
+
+        return total_reward
 
 
 if __name__ == "__main__":
