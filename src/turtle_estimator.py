@@ -140,7 +140,7 @@ if __name__ == "__main__":
         for _ in range(iterations)
     ]
 
-    with Pool() as pool:
+    with Pool(maxtasksperchild=1) as pool:
         results = pool.map(
             multithreaded_train,
             zip(count(), parameters_from_distributions, dqn_parameters_from_distributions),
