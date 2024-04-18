@@ -61,7 +61,9 @@ class EnvSingle(EnvBase):
         done = (
             reward_out_of_track < 0
             or road.distance_to_goal <= self.parameters.goal_radius
-            or self.step_sum > self.parameters.max_steps
+            or (
+                self.parameters.max_steps is not None and self.step_sum > self.parameters.max_steps
+            )
         )
 
         agent.camera_view = self.get_turtle_camera_view(agent.name, agent)

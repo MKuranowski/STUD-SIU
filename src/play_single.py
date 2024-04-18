@@ -1,15 +1,15 @@
 # pyright: basic
 
-from pathlib import Path
 import logging
 import math
+import re
+from pathlib import Path
 from typing import Optional
 
 import numpy as np
 
-from .env_base import Parameters
 from .dqn_single import DQNSingle
-
+from .env_base import Parameters
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +47,23 @@ class PlaySingle(DQNSingle):
         return total_reward * (1 + total_laps)
 
 
+def extract_grid_res_from_filename(filename: str) -> int:
+    match = re.search(r"Gr(\d+)", filename)
+    if not match:
+        raise ValueError("could not extract grid_res from filename")
+    return int(match.group(1))
+
+
+def extract_camera_res_from_filename(filename: str) -> int:
+    match = re.search(r"Cr(\d+)", filename)
+    if not match:
+        raise ValueError("could not extract grid_res from filename")
+    return int(match.group(1))
+
+
 if __name__ == "__main__":
     from argparse import ArgumentParser
+
     import coloredlogs
 
     from .env_single import EnvSingle
@@ -62,7 +77,9 @@ if __name__ == "__main__":
     coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
 
     parameters = Parameters(
-        max_steps=math.inf
+        max_steps=None,
+        grid_res=extract_grid_res_from_filename(args.model.name),
+        cam_res=extract_camera_res_from_filename(args.model.name),
     )
     with create_simulator() as simulator:
         env = EnvSingle(simulator, parameters=parameters)
