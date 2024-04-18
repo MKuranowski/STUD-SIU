@@ -40,7 +40,7 @@ def multithreaded_train(args: tuple[int, Parameters, DQNParameters]) -> ModelRes
     result = train(args[1], args[2])
     elapsed = perf_counter() - start
 
-    logger.warn(
+    logger.info(
         "Iteration %d completed in %.2f s with reward %.3f",
         args[0],
         elapsed,
@@ -95,6 +95,7 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
 
     coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
+    logging.getLogger("src").setLevel(logging.WARN)
 
     seed: int = args.seed
     iterations: int = args.iterations
