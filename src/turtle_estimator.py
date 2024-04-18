@@ -68,12 +68,19 @@ if __name__ == "__main__":
         default=16,
         help="how many random parameters to test",
     )
+    arg_parser.add_argument(
+        "-s",
+        "--seed",
+        type=int,
+        default=42,
+        help="seed for choosing parameters",
+    )
     arg_parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
     args = arg_parser.parse_args()
 
     coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
 
-    seed = 42
+    seed: int = args.seed
     iterations: int = args.iterations
     max_episodes = 4_000
 
@@ -102,8 +109,6 @@ if __name__ == "__main__":
 
     random = Random(seed)
 
-    results: list[ModelResult] = []
-
     parameters_from_distributions = [
         Parameters(
             **{key: random.choice(values) for key, values in parameters_distributions.items()}
@@ -118,6 +123,7 @@ if __name__ == "__main__":
         for _ in range(iterations)
     ]
 
+    results: list[ModelResult] = []
     with Pool() as pool:
         results = pool.map(
             multithreaded_train,
