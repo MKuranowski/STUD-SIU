@@ -85,6 +85,13 @@ if __name__ == "__main__":
         help="how many random parameters to test",
     )
     arg_parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=None,
+        help="seed for choosing parameters",
+    )
+    arg_parser.add_argument(
         "-s",
         "--seed",
         type=int,
@@ -140,7 +147,7 @@ if __name__ == "__main__":
         for _ in range(iterations)
     ]
 
-    with Pool(maxtasksperchild=1) as pool:
+    with Pool(args.jobs, maxtasksperchild=1) as pool:
         results = pool.map(
             multithreaded_train,
             zip(count(), parameters_from_distributions, dqn_parameters_from_distributions),
