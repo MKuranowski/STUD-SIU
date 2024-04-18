@@ -78,7 +78,7 @@ if __name__ == "__main__":
     max_episodes = 4_000
 
     parameters_distributions = {
-        "grid_res": range(4, 10),
+        "grid_res": [5, 7, 9],
         "cam_res": [200],
         "reward_forward_rate": [0.5, 1.0, 2.0, 4.0, 8.0],
         "reward_reverse_rate": [-10.0, -15.0, -20],
@@ -86,10 +86,10 @@ if __name__ == "__main__":
         "reward_distance_rate": [2, 4, 8, 16],
         "out_of_track_fine": [-10.0, -15.0, -20.0],
         "max_steps": [10, 20, 40, 80],
-        "goal_radius": [0.25, 0.5, 1.0, 1.5, 2.0],
+        "goal_radius": [1.0],
     }
     dqn_parameters_distributions = {
-        "discount": [0.9],
+        "discount": [0.8, 0.85, 0.9, 0.95],
         "replay_memory_max_size": [20_000],
         "replay_memory_min_size": [4_000],
         "minibatch_size": [32],
