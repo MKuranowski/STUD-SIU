@@ -61,14 +61,21 @@ if __name__ == "__main__":
     import coloredlogs
 
     arg_parser = ArgumentParser()
+    arg_parser.add_argument(
+        "-i",
+        "--iterations",
+        type=int,
+        default=16,
+        help="how many random parameters to test",
+    )
     arg_parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
     args = arg_parser.parse_args()
 
     coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
 
     seed = 42
-    iterations = 10
-    max_episodes = 100
+    iterations: int = args.iterations
+    max_episodes = 4_000
 
     parameters_distributions = {
         "grid_res": range(4, 10),
