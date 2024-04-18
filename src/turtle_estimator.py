@@ -41,7 +41,7 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
         turtle_name = next(iter(env.agents))
         model = PlaySingle(env, parameters=dqn_parameters)
         model.train(turtle_name, randomize_section=True)
-        model.random = Random(0)
+        model.env.random = Random(0)
         restricted_parameters = dataclasses.asdict(parameters)
         restricted_parameters["max_steps"] = 4_000
         model.env.parameters = Parameters(**restricted_parameters)

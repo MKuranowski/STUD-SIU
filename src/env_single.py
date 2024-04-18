@@ -1,12 +1,10 @@
+import logging
 from copy import copy
 from dataclasses import dataclass
 from math import cos, sin, sqrt
-from random import uniform
-import logging
 
 from .env_base import Action, EnvBase, StepResult
 from .simulator import Position
-
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +77,9 @@ if __name__ == "__main__":
         env.reset()
         for _ in range(10):
             env.step(
-                (Action(name, uniform(0.2, 1.0), uniform(-0.3, 0.3)) for name in env.agents),
+                (
+                    Action(name, env.random.uniform(0.2, 1.0), env.random.uniform(-0.3, 0.3))
+                    for name in env.agents
+                ),
                 realtime=False,
             )
