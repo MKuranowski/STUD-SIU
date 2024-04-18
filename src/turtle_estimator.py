@@ -102,7 +102,7 @@ if __name__ == "__main__":
     args = arg_parser.parse_args()
 
     coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
-    logging.getLogger("src").setLevel(logging.WARN)
+    logging.getLogger("src").setLevel(logging.INFO if args.verbose else logging.WARN)
 
     seed: int = args.seed
     iterations: int = args.iterations
