@@ -56,6 +56,7 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
         turtle_name = next(iter(env.agents))
         model = PlaySingle(env, parameters=dqn_parameters)
         model.train(turtle_name, randomize_section=True)
+        signature = model.signature()
 
         model.env.random = Random(0)
         restricted_parameters = dataclasses.asdict(parameters)
@@ -65,7 +66,7 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
         reward = model.play_until_crash(max_laps=4)
         return ModelResult(
             reward=reward,
-            signature=model.signature(),
+            signature=signature,
             parameters=parameters,
             dqn_parameters=dqn_parameters,
         )
