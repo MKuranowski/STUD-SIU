@@ -2,9 +2,12 @@
 
 import dataclasses
 import logging
+from itertools import count
 from multiprocessing.pool import Pool
+from operator import attrgetter
 from pathlib import Path
 from random import Random
+from time import perf_counter
 from typing import NamedTuple
 
 import numpy as np
@@ -30,8 +33,20 @@ class ModelResult(NamedTuple):
     dqn_parameters: DQNParameters
 
 
-def multithreaded_train(args: tuple[Parameters, DQNParameters]) -> ModelResult:
-    return train(args[0], args[1])
+def multithreaded_train(args: tuple[int, Parameters, DQNParameters]) -> ModelResult:
+    logger.info("Starting iteration %d", args[0])
+
+    start = perf_counter()
+    result = train(args[1], args[2])
+    elapsed = perf_counter() - start
+
+    logger.warn(
+        "Iteration %d completed in %.2f s with reward %.3f",
+        args[0],
+        elapsed,
+        result.reward,
+    )
+    return result
 
 
 def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
@@ -41,6 +56,7 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
         turtle_name = next(iter(env.agents))
         model = PlaySingle(env, parameters=dqn_parameters)
         model.train(turtle_name, randomize_section=True)
+
         model.env.random = Random(0)
         restricted_parameters = dataclasses.asdict(parameters)
         restricted_parameters["max_steps"] = 4_000
@@ -123,12 +139,12 @@ if __name__ == "__main__":
         for _ in range(iterations)
     ]
 
-    results: list[ModelResult] = []
     with Pool() as pool:
         results = pool.map(
             multithreaded_train,
-            zip(parameters_from_distributions, dqn_parameters_from_distributions),
+            zip(count(), parameters_from_distributions, dqn_parameters_from_distributions),
         )
 
-    for i, result in enumerate(sorted(results, key=lambda x: x.reward, reverse=True), start=1):
-        logger.info("%d) %f %s", i, result.reward, result.signature)
+    results.sort(key=attrgetter("reward"), reverse=True)
+    for i, result in enumerate(results, start=1):
+        logger.info("(%02d) %f %s", i, result.reward, result.signature)
