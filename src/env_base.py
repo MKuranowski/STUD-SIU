@@ -183,7 +183,7 @@ class StepResult(NamedTuple):
 @dataclass
 class EnvBase(ABC):
     simulator: Simulator
-    parameters: Parameters = Parameters()
+    parameters: Parameters = field(default_factory=Parameters)
     routes: Dict[int, List[RouteSection]] = field(default_factory=dict)
     agents: Dict[str, TurtleAgent] = field(default_factory=dict)
     step_sum: int = 0
