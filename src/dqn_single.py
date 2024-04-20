@@ -81,7 +81,7 @@ class DQNParameters:
     Tweakable, default 20.
     """
 
-    max_episodes: int = 501
+    max_episodes: int = 4_000
     """Limit for DQN algorithm episodes.
 
     Not tweakable.
