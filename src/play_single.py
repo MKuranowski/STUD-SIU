@@ -41,7 +41,7 @@ class PlaySingle(DQNSingle):
 
                 if agent.section_id == 0:
                     total_laps += 1
-                    logger.info("Lap %d completed", total_laps)
+                    logger.info("Lap %d completed with reward %d", total_laps, total_reward * (1 + total_laps))
 
         return total_reward * (1 + total_laps)
 
