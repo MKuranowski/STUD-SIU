@@ -129,19 +129,19 @@ if __name__ == "__main__":
 
     random = Random(seed)
 
-    parameters_from_distributions = [
+    parameters_from_distributions = (
         Parameters(
             **{key: random.choice(values) for key, values in parameters_distributions.items()}
         )
         for _ in range(iterations)
-    ]
+    )
 
-    dqn_parameters_from_distributions = [
+    dqn_parameters_from_distributions = (
         DQNParameters(
             **{key: random.choice(values) for key, values in dqn_parameters_distributions.items()}
         )
         for _ in range(iterations)
-    ]
+    )
 
     with Pool(args.jobs, maxtasksperchild=1) as pool:
         results = pool.map(
