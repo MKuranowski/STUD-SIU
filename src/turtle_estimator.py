@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
     parameters_distributions = {
         "grid_res": [5, 7, 9],
-        "cam_res": [200],
+        "cam_res": [50, 100, 200, 300],
         "reward_forward_rate": [0.5, 1.0, 2.0, 4.0, 8.0],
         "reward_reverse_rate": [-10.0, -15.0, -20],
         "reward_speeding_rate": [-10.0, -15.0, -20.0],
