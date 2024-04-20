@@ -2,7 +2,6 @@
 
 import gc
 import logging
-import resource
 from collections import deque
 from dataclasses import dataclass
 from operator import attrgetter
@@ -399,8 +398,6 @@ class DQNSingle:
 def force_gc() -> None:
     keras.backend.clear_session()
     gc.collect()
-    max_rss_mib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // 1024
-    logger.warn("memory cleanup, max RSS: %d MiB", max_rss_mib)
 
 
 if __name__ == "__main__":
