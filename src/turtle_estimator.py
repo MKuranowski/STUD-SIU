@@ -1,6 +1,7 @@
 # pyright: basic
 
 import logging
+from copy import copy
 from itertools import count
 from multiprocessing.pool import Pool
 from operator import attrgetter
@@ -50,7 +51,7 @@ def multithreaded_train(args: tuple[int, Parameters, DQNParameters]) -> ModelRes
 
 def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
     with create_simulator() as simulator:
-        env = EnvSingle(simulator, parameters=parameters)
+        env = EnvSingle(simulator, parameters=copy(parameters))
         env.setup("routes.csv", agent_limit=1)
         turtle_name = next(iter(env.agents))
         model = PlaySingle(env, parameters=dqn_parameters)
