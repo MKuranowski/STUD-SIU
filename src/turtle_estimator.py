@@ -87,7 +87,7 @@ if __name__ == "__main__":
         "--jobs",
         type=int,
         default=None,
-        help="seed for choosing parameters",
+        help="how may processes can run simultaneously",
     )
     arg_parser.add_argument(
         "-s",
