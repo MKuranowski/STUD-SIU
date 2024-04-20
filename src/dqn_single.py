@@ -1,6 +1,8 @@
 # pyright: basic
 
+import gc
 import logging
+import resource
 from collections import deque
 from dataclasses import dataclass
 from operator import attrgetter
@@ -101,6 +103,12 @@ class DQNParameters:
     """After every save_period episodes, the model is saved to the disk.
 
     Not tweakable.
+    """
+
+    clear_period: int = 50
+    """After every clear_period, a garbage collection is forced.
+
+    Custom argument, tweakable.
     """
 
     @property
@@ -282,10 +290,13 @@ class DQNSingle:
 
             # TODO: Studenci - okresowy zapis modelu
             if save_model and (episode + 1) % self.parameters.save_period == 0:
-                logger.debug("Saving model")
                 self.save_model()
 
+            if (episode + 1) % self.parameters.clear_period == 0:
+                force_gc()
+
         self.save_model()
+        force_gc()
 
     def train_episode(self, turtle_name: str, randomize_section: bool = True) -> float:
         self.env.reset(turtle_names=[turtle_name], randomize_section=randomize_section)
@@ -376,11 +387,19 @@ class DQNSingle:
         )
 
     def save_model(self) -> None:
+        logger.debug("Saving model")
         self.model.save(MODELS_DIR / f"{self.signature()}.h5")
 
     def load_model(self, filename: Union[str, Path]) -> None:
         self.model = cast(keras.Sequential, keras.models.load_model(filename))
         self.target_model = keras.models.clone_model(self.model)
+
+
+def force_gc() -> None:
+    keras.backend.clear_session()
+    gc.collect()
+    max_rss_mib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss // 1024
+    logger.warn("memory cleanup, max RSS: %d MiB", max_rss_mib)
 
 
 if __name__ == "__main__":
