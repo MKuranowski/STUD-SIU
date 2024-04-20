@@ -24,7 +24,7 @@ NDArrayFloat = npt.NDArray[np.float_]
 logger = logging.getLogger(__name__)
 
 
-@dataclass(frozen=True)
+@dataclass
 class DQNParameters:
     discount: float = 0.9
     """Discount for next-step reward (from the target_model).

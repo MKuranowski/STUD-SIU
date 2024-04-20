@@ -71,7 +71,7 @@ class TurtleAgent:
     camera_view: TurtleCameraView = TurtleCameraView()
 
 
-@dataclass(frozen=True)
+@dataclass
 class Parameters:
     grid_res: int = 5
     """Resolution of the turtle's camera view.

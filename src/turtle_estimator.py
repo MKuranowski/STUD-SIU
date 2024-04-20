@@ -1,6 +1,5 @@
 # pyright: basic
 
-import dataclasses
 import logging
 from itertools import count
 from multiprocessing.pool import Pool
@@ -58,9 +57,7 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
         model.train(turtle_name, randomize_section=True)
         signature = model.signature()
 
-        restricted_parameters = dataclasses.asdict(parameters)
-        restricted_parameters["max_steps"] = 4_000
-        model.env.parameters = Parameters(**restricted_parameters)
+        model.env.parameters.max_steps = 4_000
         env.reset()
         reward = model.play_until_crash(max_laps=4)
         return ModelResult(
