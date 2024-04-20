@@ -55,7 +55,7 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
         env.setup("routes.csv", agent_limit=1)
         turtle_name = next(iter(env.agents))
         model = PlaySingle(env, parameters=dqn_parameters)
-        model.train(turtle_name, randomize_section=True)
+        model.train(turtle_name, save_model=False, randomize_section=True)
         signature = model.signature()
 
         model.env.parameters.max_steps = 4_000
@@ -124,9 +124,7 @@ if __name__ == "__main__":
         "minibatch_size": [32],
         "training_batch_divisor": [4],
         "target_update_period": [20],
-        "max_episodes": [max_episodes],
         "train_period": [4],
-        "save_period": [max_episodes],
     }
 
     random = Random(seed)
