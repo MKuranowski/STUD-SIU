@@ -5,6 +5,7 @@ import logging
 import random
 from collections import deque
 from dataclasses import dataclass
+from hashlib import sha256
 from operator import attrgetter
 from pathlib import Path
 from statistics import mean
@@ -155,7 +156,9 @@ class DQNSingle:
         self.epsilon = self.parameters.initial_epsilon
 
     def signature(self) -> str:
-        return f"dqns-{self.env.parameters.signature()}_{self.parameters.signature()}"
+        params_signature = f"{self.env.parameters.signature()}_{self.parameters.signature()}"
+        params_hash = sha256(params_signature.encode("ascii")).hexdigest()[:6]
+        return f"dqns-{params_hash}-{params_signature}"
 
     @staticmethod
     def control_to_action(turtle_name: str, control: int) -> Action:
