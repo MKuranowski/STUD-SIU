@@ -58,7 +58,6 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
         model.train(turtle_name, randomize_section=True)
         signature = model.signature()
 
-        model.env.random = Random(0)
         restricted_parameters = dataclasses.asdict(parameters)
         restricted_parameters["max_steps"] = 4_000
         model.env.parameters = Parameters(**restricted_parameters)

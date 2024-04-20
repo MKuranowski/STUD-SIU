@@ -2,11 +2,11 @@
 
 import gc
 import logging
+import random
 from collections import deque
 from dataclasses import dataclass
 from operator import attrgetter
 from pathlib import Path
-from random import Random
 from statistics import mean
 from time import perf_counter
 from typing import Iterable, List, NamedTuple, Optional, Union, cast
@@ -141,8 +141,10 @@ class DQNSingle:
         parameters: DQNParameters = DQNParameters(),
         seed: int = 42,
     ) -> None:
+        # NOTE: The following seeds Python, numpy and tensorflow RNGs
+        keras.utils.set_random_seed(seed)
+
         self.env = env
-        self.env.random = Random(seed)
         self.parameters = parameters
         self.model = self.make_model()
         self.target_model = self.make_model()
@@ -306,10 +308,10 @@ class DQNSingle:
         total_reward = 0.0
 
         while True:
-            if self.env.random.random() > self.epsilon:
+            if random.random() > self.epsilon:
                 control = int(np.argmax(self.decision(self.model, last_state, current_state)))
             else:
-                control = self.env.random.randint(0, self.parameters.control_dimension - 1)
+                control = random.randint(0, self.parameters.control_dimension - 1)
 
             new_state, reward, done = self.env.step(
                 [self.control_to_action(turtle_name, control)],
@@ -354,7 +356,7 @@ class DQNSingle:
         return total_reward
 
     def train_minibatch(self) -> None:
-        moves = self.env.random.sample(self.replay_memory, self.parameters.minibatch_size)
+        moves = random.sample(self.replay_memory, self.parameters.minibatch_size)
 
         model_inputs = self.input_stacks(
             len=len(moves),

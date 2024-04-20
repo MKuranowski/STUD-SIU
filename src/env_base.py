@@ -1,8 +1,8 @@
 import csv
+import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from math import atan2, cos, dist, inf, pi, sin
-from random import Random
 from typing import Dict, Iterable, List, NamedTuple, Optional
 
 import numpy as np
@@ -187,7 +187,6 @@ class EnvBase(ABC):
     routes: Dict[int, List[RouteSection]] = field(default_factory=dict)
     agents: Dict[str, TurtleAgent] = field(default_factory=dict)
     step_sum: int = 0
-    random: Random = Random(42)
 
     def setup(self, routes_filename: str, agent_limit: float = inf) -> None:
         self.load_routes_from_file(routes_filename)
@@ -258,7 +257,7 @@ class EnvBase(ABC):
         agent = self.agents[turtle_name]
 
         if randomize_section:
-            agent.section_id = self.random.randint(0, len(agent.route) - 1)
+            agent.section_id = random.randint(0, len(agent.route) - 1)
             agent.section = agent.route[agent.section_id]
 
         while True:
@@ -269,8 +268,8 @@ class EnvBase(ABC):
                 pass
 
     def try_reset_turtle_within_section(self, turtle_name: str, agent: TurtleAgent) -> None:
-        x = self.random.uniform(agent.section.start_left, agent.section.start_right)
-        y = self.random.uniform(agent.section.start_bottom, agent.section.start_top)
+        x = random.uniform(agent.section.start_left, agent.section.start_right)
+        y = random.uniform(agent.section.start_bottom, agent.section.start_top)
         theta = atan2(agent.section.goal_y - y, agent.section.goal_x - x)
 
         agent.pose = Position(x, y, theta)
@@ -290,7 +289,7 @@ class EnvBase(ABC):
         if abs(speed_x) + abs(speed_y) <= 0.01:
             raise SpawnError("spawn at place with low suggested speed")
 
-        theta += self.random.uniform(
+        theta += random.uniform(
             -self.parameters.max_random_rotation,
             self.parameters.max_random_rotation,
         )

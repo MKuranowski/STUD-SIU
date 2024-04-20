@@ -71,6 +71,8 @@ class EnvSingle(EnvBase):
 
 
 if __name__ == "__main__":
+    import random
+
     from .simulator import create_simulator
 
     with create_simulator() as simulator:
@@ -80,7 +82,7 @@ if __name__ == "__main__":
         for _ in range(10):
             env.step(
                 (
-                    Action(name, env.random.uniform(0.2, 1.0), env.random.uniform(-0.3, 0.3))
+                    Action(name, random.uniform(0.2, 1.0), random.uniform(-0.3, 0.3))
                     for name in env.agents
                 ),
                 realtime=False,
