@@ -207,9 +207,11 @@ class DQNSingle:
         # with B representing the amount of different inputs to make predictions for.
         # Since we only do a single prediction, we have to expand input_stack from (n, n, m)
         # to (1, n, n, m).
-        prediction = model(np.expand_dims(self.input_stack(last, current), axis=0))
+        prediction = model.predict_on_batch(
+            np.expand_dims(self.input_stack(last, current), axis=0),
+        )
         assert prediction.shape[0] == 1
-        return prediction[0].numpy()
+        return prediction[0]
 
     def make_model(self) -> keras.Sequential:
         n = self.env.parameters.grid_res
@@ -361,8 +363,8 @@ class DQNSingle:
             currents=map(attrgetter("current_state"), moves),
         )
 
-        main_model_current_rewards = self.model(model_inputs)
-        target_model_next_rewards = self.target_model(
+        model_expected_outputs: NDArrayFloat = self.model.predict_on_batch(model_inputs)
+        target_model_next_rewards: NDArrayFloat = self.target_model.predict_on_batch(
             self.input_stacks(
                 len=len(moves),
                 lasts=map(attrgetter("current_state"), moves),
@@ -370,21 +372,20 @@ class DQNSingle:
             )
         )
 
-        model_expected_outputs = main_model_current_rewards.numpy().copy()
-
         for idx, move in enumerate(moves):
             new_reward = move.reward
             if not move.done:
                 new_reward += self.parameters.discount * np.max(target_model_next_rewards[idx])
             model_expected_outputs[idx, move.control] = new_reward
 
-        self.model.fit(
-            x=model_inputs,
-            y=model_expected_outputs,
-            batch_size=self.parameters.training_batch_size,
-            verbose=0,
-            shuffle=False,
-        )
+        batch_start = 0
+        batch_end = self.parameters.training_batch_size
+        while batch_start < self.parameters.minibatch_size:
+            self.model.train_on_batch(
+                x=model_inputs[batch_start:batch_end],
+                y=model_expected_outputs[batch_start:batch_end],
+            )
+            batch_start, batch_end = batch_end, batch_end + self.parameters.training_batch_size
 
     def save_model(self) -> None:
         logger.debug("Saving model")
