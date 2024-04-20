@@ -1,17 +1,20 @@
 # pyright: basic
 
+import csv
 import logging
 from copy import copy
+from hashlib import sha256
 from itertools import count
 from multiprocessing.pool import Pool
 from operator import attrgetter
 from pathlib import Path
 from random import Random
 from time import perf_counter
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 import numpy as np
 import numpy.typing as npt
+from filelock import FileLock
 
 from .dqn_single import DQNParameters
 from .env_base import Parameters
@@ -20,6 +23,8 @@ from .play_single import PlaySingle
 from .simulator import create_simulator
 
 MODELS_DIR = Path("models")
+MODELS_CSV = Path("dqn_single_models.csv")
+MODELS_CSV_LOCK = MODELS_CSV.with_suffix(".csv.lock")
 
 NDArrayFloat = npt.NDArray[np.float_]
 
@@ -28,9 +33,8 @@ logger = logging.getLogger(__name__)
 
 class ModelResult(NamedTuple):
     reward: float
+    hash: str
     signature: str
-    parameters: Parameters
-    dqn_parameters: DQNParameters
 
 
 def multithreaded_train(args: tuple[int, Parameters, DQNParameters]) -> ModelResult:
@@ -50,23 +54,54 @@ def multithreaded_train(args: tuple[int, Parameters, DQNParameters]) -> ModelRes
 
 
 def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
+    signature = f"{parameters.signature()}_{dqn_parameters.signature()}"
+    hash = sha256(signature.encode("ascii")).hexdigest()[:6]
+
+    if result := load_result_for_signature(signature):
+        logger.error("%s was already evaluated", hash)
+        return result
+
     with create_simulator() as simulator:
         env = EnvSingle(simulator, parameters=copy(parameters))
         env.setup("routes.csv", agent_limit=1)
         turtle_name = next(iter(env.agents))
         model = PlaySingle(env, parameters=dqn_parameters)
         model.train(turtle_name, save_model=False, randomize_section=True)
-        signature = model.signature()
 
         model.env.parameters.max_steps = 4_000
         env.reset()
         reward = model.play_until_crash(max_laps=4)
-        return ModelResult(
-            reward=reward,
-            signature=signature,
-            parameters=parameters,
-            dqn_parameters=dqn_parameters,
-        )
+
+    result = ModelResult(reward, hash, signature)
+    save_result(result)
+    return result
+
+
+def load_result_for_signature(signature: str) -> Optional[ModelResult]:
+    with FileLock(MODELS_CSV_LOCK):
+        return load_models_csv().get(signature)
+
+
+def save_result(result: ModelResult):
+    with FileLock(MODELS_CSV_LOCK):
+        results_by_signature = load_models_csv()
+        results_by_signature[result.signature] = result
+        save_models_csv(results_by_signature)
+
+
+def load_models_csv() -> dict[str, ModelResult]:
+    with MODELS_CSV.open("r", encoding="ascii", newline="") as f:
+        return {
+            i["signature"]: ModelResult(float(i["reward"]), i["hash"], i["signature"])
+            for i in csv.DictReader(f)
+        }
+
+
+def save_models_csv(results_by_signature: dict[str, ModelResult]):
+    with MODELS_CSV.open("w", encoding="ascii", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(("reward", "hash", "signature"))
+        w.writerows(sorted(results_by_signature.values(), key=attrgetter("reward"), reverse=True))
 
 
 if __name__ == "__main__":
@@ -148,7 +183,3 @@ if __name__ == "__main__":
             multithreaded_train,
             zip(count(), parameters_from_distributions, dqn_parameters_from_distributions),
         )
-
-    results.sort(key=attrgetter("reward"), reverse=True)
-    for i, result in enumerate(results, start=1):
-        logger.info("(%02d) %f %s", i, result.reward, result.signature)

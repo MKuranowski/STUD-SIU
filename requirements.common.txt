@@ -4,3 +4,4 @@ coloredlogs==15.0.1
 opencv-python==4.9.0.80
 numpy==1.24.3
 keras==2.13.1
+filelock==3.13.4
