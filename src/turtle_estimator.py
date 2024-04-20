@@ -40,9 +40,9 @@ def multithreaded_train(args: tuple[int, Parameters, DQNParameters]) -> ModelRes
     elapsed = perf_counter() - start
 
     logger.info(
-        "Iteration %d completed in %.2f s with reward %.3f",
+        "Iteration %d completed in %.2f min with reward %.3f",
         args[0],
-        elapsed,
+        elapsed / 60,
         result.reward,
     )
     return result
