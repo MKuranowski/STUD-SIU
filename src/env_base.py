@@ -147,11 +147,11 @@ class Parameters:
     Not tweakable.
     """
 
-    goal_radius: float = 1.0
+    goal_radius: float = 2.0
     """How close does an agent has to be to its goal to assume
     that the goal has been reached, in meters?
 
-    Non-standard, tweakable, default 1.
+    Non-standard, tweakable, default 2.
     """
 
     def signature(self) -> str:
