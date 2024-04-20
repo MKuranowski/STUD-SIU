@@ -133,7 +133,7 @@ class Parameters:
     detect_collisions: bool = False
     """Enable collision checking."""
 
-    max_steps: int = 200
+    max_steps: int = 80
     """Max steps for a turtle to reach its goal.
 
     Tweakable, default 20.
