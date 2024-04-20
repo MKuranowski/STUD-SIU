@@ -67,7 +67,7 @@ class DQNParameters:
     Tweakable, default 32.
     """
 
-    training_batch_divisor: int = 4
+    training_batch_divisor: int = 1
     """Used for calculating the training batch size, using the following formula:
     training_batch_size = minibatch_size // training_batch_divisor.
 
