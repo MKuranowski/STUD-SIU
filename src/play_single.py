@@ -1,7 +1,6 @@
 # pyright: basic
 
 import logging
-import math
 import re
 from pathlib import Path
 from typing import Optional
@@ -57,7 +56,7 @@ def extract_grid_res_from_filename(filename: str) -> int:
 def extract_camera_res_from_filename(filename: str) -> int:
     match = re.search(r"Cr(\d+)", filename)
     if not match:
-        raise ValueError("could not extract grid_res from filename")
+        raise ValueError("could not extract camera_res from filename")
     return int(match.group(1))
 
 
