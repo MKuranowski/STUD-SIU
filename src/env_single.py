@@ -1,7 +1,7 @@
 import logging
 from copy import copy
 from dataclasses import dataclass
-from math import cos, sin, sqrt
+from math import cos, sin, sqrt, pi
 
 from .env_base import Action, EnvBase, StepResult
 from .simulator import Position
@@ -18,7 +18,10 @@ class EnvSingle(EnvBase):
 
         # TODO: Studenci - "przejechać 1/2 okresu, skręcić, przejechać pozostałą 1/2"
         if realtime:
-            raise NotImplementedError("realtime mode")
+            self.simulator.move_relative(agent.name, action.speed * 0.5, 0.0)
+            self.simulator.move_relative(agent.name, 0.0, pi - 2 * action.turn)
+            self.simulator.move_relative(agent.name, action.speed * 0.5, 0.0)
+            agent.pose = self.simulator.get_position(agent.name)
         else:
             angle = agent.pose.angle + action.turn
             x = agent.pose.x + cos(angle) * action.speed * self.parameters.seconds_per_step
