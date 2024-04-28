@@ -73,14 +73,13 @@ if __name__ == "__main__":
     arg_parser.add_argument("model", type=Path, help="path to model")
     args = arg_parser.parse_args()
 
-    coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
-
     parameters = Parameters(
         max_steps=None,
         grid_res=extract_grid_res_from_filename(args.model.name),
         cam_res=extract_camera_res_from_filename(args.model.name),
     )
     with create_simulator() as simulator:
+        coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
         env = EnvSingle(simulator, parameters=parameters)
         env.setup("routes.csv", agent_limit=1)
         env.reset()
