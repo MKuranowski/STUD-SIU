@@ -21,7 +21,7 @@ Trenowanie modeli odbywa się zgodnie ze skryptem w pliku `turtle_estimator.py`.
 ### Uruchomienie w przesłanym obrazie Docker
 
 ```shell
-docker run --rm --name siu -p 8080:80 -e RESOLUTION=1920x1080 -m 8g bartlomiejkrawczyk/siu-20.04
+docker run --rm --name siu-24l-z3 -p 8080:80 -e RESOLUTION=1920x1080 -m 8g --ulimit nofile=1024:524288 bartlomiejkrawczyk/siu-20.04:ETAP_2
 ```
 
 W terminalu w wirtualnym pulpicie (<http://localhost:8080>), w katalogu domowym (`/root`):
