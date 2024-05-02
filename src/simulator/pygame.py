@@ -1,3 +1,6 @@
+# Copyright (c) 2024 Mateusz Brzozowski, Bartłomiej Krawczyk, Mikołaj Kuranowski, Konrad Wojda
+# SPDX-License-Identifier: MIT
+
 from math import degrees
 from pathlib import Path
 from threading import Lock, Thread

@@ -1,3 +1,6 @@
+# Copyright (c) 2024 Mateusz Brzozowski, Bartłomiej Krawczyk, Mikołaj Kuranowski, Konrad Wojda
+# SPDX-License-Identifier: MIT
+
 # pyright: basic
 
 import csv

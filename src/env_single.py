@@ -1,3 +1,6 @@
+# Copyright (c) 2024 Mateusz Brzozowski, Bartłomiej Krawczyk, Mikołaj Kuranowski, Konrad Wojda
+# SPDX-License-Identifier: MIT
+
 import logging
 from copy import copy
 from dataclasses import dataclass
