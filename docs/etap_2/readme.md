@@ -35,6 +35,8 @@ Uruchomienie modelu z wykorzystaniem autorskiej implementacji środowiska w pyga
 SIU_BACKEND=pygame python3 -m src.play_single models/dqns-7704f2-Gr7_Cr200_Sw4.0_Sv-20_Sf-15.0_Dr4_Oo-20.0_Ms20_Pb6_D0.85_M20000_m4000_B32_U20_T4.h5
 ```
 
+Kod źródłowy znajduje się w katalogu `/root/src` oraz w repozytorium dostępnym na <https://gitlab-stud.elka.pw.edu.pl/mkuranow/24l.siu>.
+
 ## Najlepszy scenariusz
 
 Najlepszy model znajduje się w pliku `models/dqns-7704f2-Gr7_Cr200_Sw4.0_Sv-20_Sf-15.0_Dr4_Oo-20.0_Ms20_Pb6_D0.85_M20000_m4000_B32_U20_T4.h5`. Bez problemu jest on w stanie wykonać kilkanaście kółek z rzędu za każdym uruchomieniam, co pozwala osiągnąć wartość parametru η >> 1. Prezentuje to drugi z poniższych obrazów. 
