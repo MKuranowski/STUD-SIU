@@ -5,6 +5,10 @@
 * Bartłomiej Krawczyk, 310774
 * Mateusz Brzozowski, 310608
 
+## Plansza z celami ruchu oraz polami startowymi
+
+![](../etap_1/stages.png)
+
 ## Uruchomienie środowiska
 
 Zestawienie środowiska treningowego było najtrudniejszym punktem tego etapu. Każda osoba z zespołu miała problem z uruchomieniem lub treningiem żółwi. Decyzje architekturalne ROSa w zależności systemu operacyjnego hosta mogą powodować wyciek pamięci. Dodatkowe
