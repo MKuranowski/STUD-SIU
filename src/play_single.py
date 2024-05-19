@@ -11,7 +11,7 @@ from typing import Optional
 import numpy as np
 
 from .dqn_single import DQNSingle
-from .env_base import Parameters
+from .environment import Parameters
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,11 @@ class PlaySingle(DQNSingle):
 
                 if agent.section_id == 0:
                     total_laps += 1
-                    logger.info("Lap %d completed with reward %f", total_laps, total_reward * (1 + total_laps))
+                    logger.info(
+                        "Lap %d completed with reward %f",
+                        total_laps,
+                        total_reward * (1 + total_laps),
+                    )
 
         return total_reward * (1 + total_laps)
 
@@ -68,7 +72,7 @@ if __name__ == "__main__":
 
     import coloredlogs
 
-    from .env_single import EnvSingle
+    from .environment import Environment
     from .simulator import create_simulator
 
     arg_parser = ArgumentParser()
@@ -83,7 +87,7 @@ if __name__ == "__main__":
     )
     with create_simulator() as simulator:
         coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
-        env = EnvSingle(simulator, parameters=parameters)
+        env = Environment(simulator, parameters=parameters)
         env.setup("routes.csv", agent_limit=1)
         env.reset()
 

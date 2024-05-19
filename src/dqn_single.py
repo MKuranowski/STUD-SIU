@@ -19,7 +19,7 @@ import keras
 import numpy as np
 import numpy.typing as npt
 
-from .env_base import Action, EnvBase, TurtleCameraView
+from .environment import Action, Environment, TurtleCameraView
 
 MODELS_DIR = Path("models")
 
@@ -141,7 +141,7 @@ class MemoryEntry(NamedTuple):
 class DQNSingle:
     def __init__(
         self,
-        env: EnvBase,
+        env: Environment,
         parameters: DQNParameters = DQNParameters(),
         seed: int = 42,
     ) -> None:
@@ -413,7 +413,7 @@ if __name__ == "__main__":
 
     import coloredlogs
 
-    from .env_single import EnvSingle
+    from .environment import Environment
     from .simulator import create_simulator
 
     arg_parser = ArgumentParser()
@@ -424,7 +424,7 @@ if __name__ == "__main__":
     coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
 
     with create_simulator() as simulator:
-        env = EnvSingle(simulator)
+        env = Environment(simulator)
         env.setup("routes.csv", agent_limit=1)
 
         turtle_name = next(iter(env.agents))

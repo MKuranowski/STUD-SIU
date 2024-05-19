@@ -3,10 +3,10 @@
 
 import csv
 import random
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from math import atan2, cos, dist, inf, pi, sin
-from typing import Dict, Iterable, List, NamedTuple, Optional, Sequence
+from itertools import combinations
+from math import atan2, cos, dist, inf, pi, sin, sqrt
+from typing import Dict, Iterable, List, NamedTuple, Optional, Sequence, Set, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -192,7 +192,87 @@ class StepResult(NamedTuple):
 
 
 @dataclass
-class EnvBase(ABC):
+class AgentDataBeforeMove:
+    pose: Position
+    distance_to_goal: float
+
+
+@dataclass
+class RewardCalculator:
+    agent: TurtleAgent
+    road: TurtleRoadView
+    before: AgentDataBeforeMove
+    collided: bool
+    parameters: Parameters
+
+    crashed: bool = field(init=False)
+    speed_x: float = field(init=False)
+    speed_y: float = field(init=False)
+    current_speed: float = field(init=False)
+    suggested_speed: float = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.crashed = self.collided or self.is_out_of_track()
+        self.speed_x = (self.agent.pose.x - self.before.pose.x) / self.parameters.seconds_per_step
+        self.speed_y = (self.agent.pose.y - self.before.pose.y) / self.parameters.seconds_per_step
+        self.current_speed = sqrt(self.speed_x**2 + self.speed_y**2)
+        self.suggested_speed = sqrt(self.road.speed_x**2 + self.road.speed_y**2)
+
+    def calculate(self) -> Tuple[float, bool]:
+        total_reward = (
+            self.speeding_reward()
+            + self.direction_reward()
+            + self.distance_reward()
+            + self.crash_reward()
+        )
+        done = self.is_done()
+        return total_reward, done
+
+    def speeding_reward(self) -> float:
+        return min(
+            0,
+            self.parameters.reward_speeding_rate * (self.current_speed - self.suggested_speed),
+        )
+
+    def direction_reward(self) -> float:
+        if self.suggested_speed > 0.001:
+            speed_ratio = (
+                self.speed_x * self.road.speed_x + self.speed_y * self.road.speed_y
+            ) / self.suggested_speed
+            if speed_ratio > 0:
+                return self.parameters.reward_forward_rate * speed_ratio
+            else:
+                return self.parameters.reward_reverse_rate * -speed_ratio
+        else:
+            return 0
+
+    def distance_reward(self) -> float:
+        return self.parameters.reward_distance_rate * (
+            self.before.distance_to_goal - self.road.distance_to_goal
+        )
+
+    def crash_reward(self) -> float:
+        return self.parameters.out_of_track_fine if self.crashed else 0.0
+
+    def is_out_of_track(self) -> bool:
+        return self.road.penalty > 0.95 and abs(self.road.speed_x) + abs(self.road.speed_y) < 0.01
+
+    def is_out_of_steps(self) -> bool:
+        return (
+            self.parameters.max_steps is not None
+            and self.agent.step_sum > self.parameters.max_steps
+        )
+
+    def is_done(self) -> bool:
+        return (
+            self.crashed
+            or self.road.distance_to_goal <= self.parameters.goal_radius
+            or self.is_out_of_steps()
+        )
+
+
+@dataclass
+class Environment:
     simulator: Simulator
     parameters: Parameters = field(default_factory=Parameters)
     routes: Dict[int, List[RouteSection]] = field(default_factory=dict)
@@ -388,9 +468,83 @@ class EnvBase(ABC):
         )
         return distance_to_goal <= self.parameters.goal_radius
 
-    @abstractmethod
     def step(self, actions: Sequence[Action], realtime: bool = False) -> Dict[str, StepResult]:
-        raise NotImplementedError
+        self.step_sum += 1
+
+        before = self.move_agents(actions, realtime)
+        collided_agents: Set[str] = (
+            self.find_collided_agents() if self.parameters.detect_collisions else set()
+        )
+        return {
+            action.turtle_name: self.calculate_step_result(
+                action.turtle_name,
+                before[action.turtle_name],
+                collided=action.turtle_name in collided_agents,
+            )
+            for action in actions
+        }
+
+    def move_agents(
+        self,
+        actions: Iterable[Action],
+        realtime: bool = False,
+    ) -> Dict[str, AgentDataBeforeMove]:
+        return {action.turtle_name: self.move_agent(action, realtime) for action in actions}
+
+    def move_agent(
+        self,
+        action: Action,
+        realtime: bool = False,
+        agent: Optional[TurtleAgent] = None,
+    ) -> AgentDataBeforeMove:
+        agent = agent or self.agents[action.turtle_name]
+        before = AgentDataBeforeMove(
+            agent.pose,
+            self.get_turtle_road_view(agent.name).distance_to_goal,
+        )
+
+        # TODO: Studenci - "przejechać 1/2 okresu, skręcić, przejechać pozostałą 1/2"
+        if realtime:
+            self.simulator.move_relative(agent.name, action.speed * 0.5, 0.0)
+            self.simulator.move_relative(agent.name, 0.0, pi - 2 * action.turn)
+            self.simulator.move_relative(agent.name, action.speed * 0.5, 0.0)
+            agent.pose = self.simulator.get_position(agent.name)
+        else:
+            angle = agent.pose.angle + action.turn
+            x = agent.pose.x + cos(angle) * action.speed * self.parameters.seconds_per_step
+            y = agent.pose.y + sin(angle) * action.speed * self.parameters.seconds_per_step
+            agent.pose = Position(x, y, angle)
+            self.simulator.move_absolute(agent.name, agent.pose)
+
+        return before
+
+    def find_collided_agents(self) -> Set[str]:
+        collided_agents: Set[str] = set()
+        for names in combinations(self.agents, 2):
+            agents = (self.agents[name] for name in names)
+            coordinates = ((agent.pose.x, agent.pose.y) for agent in agents)
+            distance = dist(*coordinates)
+            if distance < self.parameters.collision_distance:
+                collided_agents.update(names)
+        return collided_agents
+
+    def calculate_step_result(
+        self,
+        agent_name: str,
+        before: AgentDataBeforeMove,
+        collided: bool = False,
+        agent: Optional[TurtleAgent] = None,
+    ) -> StepResult:
+        agent = agent or self.agents[agent_name]
+        road = self.get_turtle_road_view(agent.name)
+
+        reward, done = RewardCalculator(agent, road, before, collided, self.parameters).calculate()
+
+        agent.camera_view = self.get_turtle_camera_view(agent.name, agent)
+        if collided:
+            assert agent.camera_view.is_collision_likely()
+
+        return StepResult(agent.camera_view, reward, done)
 
 
 def int_to_ascii(n: int) -> str:

@@ -13,15 +13,14 @@ from operator import attrgetter
 from pathlib import Path
 from random import Random
 from time import perf_counter
-from typing import NamedTuple, Optional
+from typing import Dict, NamedTuple, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
 from filelock import FileLock
 
 from .dqn_single import DQNParameters
-from .env_base import Parameters
-from .env_single import EnvSingle
+from .environment import Environment, Parameters
 from .play_single import PlaySingle
 from .simulator import create_simulator
 
@@ -40,7 +39,7 @@ class ModelResult(NamedTuple):
     signature: str
 
 
-def multithreaded_train(args: tuple[int, Parameters, DQNParameters]) -> ModelResult:
+def multithreaded_train(args: Tuple[int, Parameters, DQNParameters]) -> ModelResult:
     logger.info("Starting iteration %d", args[0])
 
     start = perf_counter()
@@ -65,7 +64,7 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
         return result
 
     with create_simulator() as simulator:
-        env = EnvSingle(simulator, parameters=copy(parameters))
+        env = Environment(simulator, parameters=copy(parameters))
         env.setup("routes.csv", agent_limit=1)
         turtle_name = next(iter(env.agents))
         model = PlaySingle(env, parameters=dqn_parameters)
@@ -92,7 +91,7 @@ def save_result(result: ModelResult):
         save_models_csv(results_by_signature)
 
 
-def load_models_csv() -> dict[str, ModelResult]:
+def load_models_csv() -> Dict[str, ModelResult]:
     with MODELS_CSV.open("r", encoding="ascii", newline="") as f:
         return {
             i["signature"]: ModelResult(float(i["reward"]), i["hash"], i["signature"])
@@ -100,7 +99,7 @@ def load_models_csv() -> dict[str, ModelResult]:
         }
 
 
-def save_models_csv(results_by_signature: dict[str, ModelResult]):
+def save_models_csv(results_by_signature: Dict[str, ModelResult]):
     with MODELS_CSV.open("w", encoding="ascii", newline="") as f:
         w = csv.writer(f)
         w.writerow(("reward", "hash", "signature"))
