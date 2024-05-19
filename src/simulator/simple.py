@@ -12,6 +12,7 @@ from typing_extensions import Self
 from .simulator import CameraCell, Color, ColorChecker, Position, Simulator
 
 USE_BROKEN_ROS_DISTANCE_ALGORITHM = True
+TURTLE_SIZE_METERS = 1.0
 
 
 Number = TypeVar("Number", int, float)
@@ -34,6 +35,8 @@ class SimpleSimulator(Simulator):
 
         self.turtles: Dict[str, Position] = {}
         """Positions of all known turtles, indexed by their name"""
+
+        self.turtle_size_px = TURTLE_SIZE_METERS * self.scale
 
     def __enter__(self) -> Self:
         return self
@@ -113,6 +116,7 @@ class SimpleSimulator(Simulator):
                     cell_pixel_size=cell_pixel_size,
                     camera_to_bg=camera_to_bg,
                     goal=goal,
+                    origin_turtle_name=name,
                 )
                 for j in range(cell_side_count)
             ]
@@ -127,8 +131,16 @@ class SimpleSimulator(Simulator):
         cell_pixel_size: int,
         camera_to_bg: NDArrayFloat32,
         goal: Position,
+        origin_turtle_name: str,
     ) -> CameraCell:
         """_read_cell returns the CameraCell corresponding to a 2D-slice of a camera view"""
+        # Calculate camera center coordinates
+        cell_center_cam_x_px = (col_idx + 0.5) * cell_pixel_size
+        cell_center_cam_y_px = (row_idx + 0.5) * cell_pixel_size
+        cell_center_bg_x_px, cell_center_bg_y_px = (
+            camera_to_bg @ np.array([cell_center_cam_x_px, cell_center_cam_y_px, 1.0]).T
+        )
+
         mean_r, mean_g, mean_b = self._read_cell_colors(camera, row_idx, col_idx, cell_pixel_size)
 
         dist_algorithm = (
@@ -136,17 +148,21 @@ class SimpleSimulator(Simulator):
             if not USE_BROKEN_ROS_DISTANCE_ALGORITHM
             else self._calc_cell_distance_with_broken_ros_algorithm
         )
-        dist = dist_algorithm(row_idx, col_idx, cell_pixel_size, camera_to_bg, goal)
+        dist = dist_algorithm(cell_center_bg_x_px, cell_center_bg_y_px, goal)
 
-        if len(self.turtles) > 1:
-            raise NotImplementedError("TODO: Calculate CameraCell.free")
+        free = self._is_cell_free(
+            cell_center_bg_x_px,
+            cell_center_bg_y_px,
+            cell_pixel_size,
+            origin_turtle_name,
+        )
 
         return CameraCell(
             r=clamp((mean_r - 200) / 50, -1.0, 1.0),
             g=clamp(mean_g / 255, -1.0, 1.0),
             b=clamp((mean_b - 200) / 50, -1.0, 1.0),
             distance_to_goal=dist,
-            free=True,
+            free=free,
         )
 
     def _read_cell_colors(
@@ -168,20 +184,13 @@ class SimpleSimulator(Simulator):
 
     def _calc_cell_distance(
         self,
-        row_idx: int,
-        col_idx: int,
-        cell_pixel_size: int,
-        camera_to_bg: NDArrayFloat32,
+        cell_center_bg_x_px: float,
+        cell_center_bg_y_px: float,
         goal: Position,
     ) -> float:
         """_calc_cell_distance returns the distance from the cell to the goal.
         The cell is identified by its row and column indices, and the camera_to_bg
         matrix is used to move from camera to global coordinate system."""
-        cell_center_cam_x_px = (col_idx + 0.5) * cell_pixel_size
-        cell_center_cam_y_px = (row_idx + 0.5) * cell_pixel_size
-        cell_center_bg_x_px, cell_center_bg_y_px = (
-            camera_to_bg @ np.array([cell_center_cam_x_px, cell_center_cam_y_px, 1.0]).T
-        )
         cell_center_bg_x, cell_center_bg_y = self.pixels_to_position(
             cell_center_bg_x_px,
             cell_center_bg_y_px,
@@ -190,21 +199,14 @@ class SimpleSimulator(Simulator):
 
     def _calc_cell_distance_with_broken_ros_algorithm(
         self,
-        row_idx: int,
-        col_idx: int,
-        cell_pixel_size: int,
-        camera_to_bg: NDArrayFloat32,
+        cell_center_bg_x_px: float,
+        cell_center_bg_y_px: float,
         goal: Position,
     ) -> float:
         """_calc_cell_distance returns the "distance" from the cell to the goal,
         introducing errors as they are present in the original, prof's code.
         The cell is identified by its row and column indices, and the camera_to_bg
         matrix is used to move from camera to global coordinate system."""
-        cell_center_cam_x_px = (col_idx + 0.5) * cell_pixel_size
-        cell_center_cam_y_px = (row_idx + 0.5) * cell_pixel_size
-        cell_center_bg_x_px, cell_center_bg_y_px = (
-            camera_to_bg @ np.array([cell_center_cam_x_px, cell_center_cam_y_px, 1.0]).T
-        )
 
         # Introduce error due to wrong height calculation from
         # https://github.com/RCPRG-ros-pkg/ros_tutorials/blob/noetic-devel/turtlesim/src/turtle_frame.cpp#L153
@@ -306,6 +308,32 @@ class SimpleSimulator(Simulator):
             dtype=np.float32,
         )
         return cv2.getAffineTransform(bg_triangle, camera_trinagle)  # type: ignore
+
+    def _is_cell_free(
+        self,
+        cell_center_bg_x_px: float,
+        cell_center_bg_y_px: float,
+        cell_pixel_size: float,
+        origin_turtle_name: str,
+    ) -> bool:
+        return not any(
+            self._turtle_intersects_with_cell(
+                (cell_center_bg_x_px, cell_center_bg_y_px),
+                self.position_to_pixels(position),
+                cell_pixel_size,
+            )
+            for name, position in self.turtles.items()
+            if name != origin_turtle_name
+        )
+
+    def _turtle_intersects_with_cell(
+        self,
+        cell_center_bg_px: Tuple[float, float],
+        turtle_bg_px: Tuple[float, float],
+        cell_pixel_size: float,
+    ) -> bool:
+        distance = dist(cell_center_bg_px, turtle_bg_px)
+        return distance - self.turtle_size_px <= cell_pixel_size
 
     def get_color_checker(self, name: str) -> ColorChecker:
         return SimpleColorChecker(self, name)
