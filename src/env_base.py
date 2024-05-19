@@ -48,7 +48,7 @@ class TurtleCameraView(NamedTuple):
     distances_to_goal: NDArrayFloat = np.array(())
     speeds_along_azimuth: NDArrayFloat = np.array(())
     speeds_perpendicular_azimuth: NDArrayFloat = np.array(())
-    occupancy: NDArrayFloat = np.array(())
+    free_of_other_agents: NDArrayFloat = np.array(())
 
     def copy(self) -> "TurtleCameraView":
         return TurtleCameraView(
@@ -58,7 +58,7 @@ class TurtleCameraView(NamedTuple):
             self.distances_to_goal.copy(),
             self.speeds_along_azimuth.copy(),
             self.speeds_perpendicular_azimuth.copy(),
-            self.occupancy.copy(),
+            self.free_of_other_agents.copy(),
         )
 
 
@@ -286,7 +286,7 @@ class EnvBase(ABC):
         if self.parameters.detect_collisions:
             agent.camera_view = self.get_turtle_camera_view(turtle_name, agent)
             if (
-                agent.camera_view.occupancy[
+                agent.camera_view.free_of_other_agents[
                     self.parameters.grid_res // 2, self.parameters.grid_res - 1
                 ]
                 == 0
@@ -349,7 +349,7 @@ class EnvBase(ABC):
         speeds_y = self.base_camera_matrix()
         penalties = self.base_camera_matrix()
         distances_to_goal = self.base_camera_matrix()
-        occupancy = self.base_camera_matrix()
+        free_of_other_agents = self.base_camera_matrix()
 
         for i, row in enumerate(img):
             for j, cell in enumerate(row):
@@ -357,7 +357,7 @@ class EnvBase(ABC):
                 speeds_y[i, j] = cell.b
                 penalties[i, j] = cell.g
                 distances_to_goal[i, j] = cell.distance_to_goal
-                occupancy[i, j] = cell.free
+                free_of_other_agents[i, j] = cell.free
 
         speeds_along_azimuth = speeds_x * np.cos(pose.angle) + speeds_y * np.sin(pose.angle)
         speeds_perpendicular_azimuth = speeds_y * np.cos(pose.angle) - speeds_x * np.sin(
@@ -371,7 +371,7 @@ class EnvBase(ABC):
             distances_to_goal,
             speeds_along_azimuth + 1,
             speeds_perpendicular_azimuth + 1,
-            occupancy,
+            free_of_other_agents,
         )
 
     def base_camera_matrix(self) -> NDArrayFloat:
