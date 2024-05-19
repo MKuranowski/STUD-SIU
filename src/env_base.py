@@ -6,7 +6,7 @@ import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from math import atan2, cos, dist, inf, pi, sin
-from typing import Dict, Iterable, List, NamedTuple, Optional
+from typing import Dict, Iterable, List, NamedTuple, Optional, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -60,6 +60,13 @@ class TurtleCameraView(NamedTuple):
             self.speeds_perpendicular_azimuth.copy(),
             self.free_of_other_agents.copy(),
         )
+
+    def is_collision_likely(self) -> bool:
+        # FIXME: The coordinates should be the other way around
+        return not self.free_of_other_agents[
+            self.free_of_other_agents.shape[0] // 2,
+            -1,
+        ]
 
 
 @dataclass
@@ -283,15 +290,11 @@ class EnvBase(ABC):
         self.simulator.move_absolute(turtle_name, agent.pose)
 
         speed_x, speed_y, _, _, _, _ = self.get_turtle_road_view(turtle_name, agent)
-        if self.parameters.detect_collisions:
-            agent.camera_view = self.get_turtle_camera_view(turtle_name, agent)
-            if (
-                agent.camera_view.free_of_other_agents[
-                    self.parameters.grid_res // 2, self.parameters.grid_res - 1
-                ]
-                == 0
-            ):
-                raise SpawnError("collision")
+        if (
+            self.parameters.detect_collisions
+            and self.get_turtle_camera_view(turtle_name, agent).is_collision_likely()
+        ):
+            raise SpawnError("collision")
 
         if abs(speed_x) + abs(speed_y) <= 0.01:
             raise SpawnError("spawn at place with low suggested speed")
@@ -385,12 +388,8 @@ class EnvBase(ABC):
         )
         return distance_to_goal <= self.parameters.goal_radius
 
-    def step(self, actions: Iterable[Action], realtime: bool = False) -> Dict[str, StepResult]:
-        self.step_sum += 1
-        return {action.turtle_name: self.single_step(action, realtime) for action in actions}
-
     @abstractmethod
-    def single_step(self, action: Action, realtime: bool = False) -> StepResult:
+    def step(self, actions: Sequence[Action], realtime: bool = False) -> Dict[str, StepResult]:
         raise NotImplementedError
 
 

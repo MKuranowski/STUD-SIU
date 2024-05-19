@@ -2,28 +2,59 @@
 # SPDX-License-Identifier: MIT
 
 import logging
-from copy import copy
 from dataclasses import dataclass
-from math import cos, pi, sin, sqrt
-from typing import Dict, Sequence
+from itertools import combinations
+from math import cos, dist, pi, sin, sqrt
+from typing import Dict, Iterable, Optional, Sequence, Set
 
-from .env_base import Action, EnvBase, StepResult
+from .env_base import Action, EnvBase, StepResult, TurtleAgent
 from .simulator import Position
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class EnvSingle(EnvBase):
+class AgentDataBeforeMove:
+    pose: Position
+    distance_to_goal: float
+
+
+@dataclass
+class EnvMulti(EnvBase):
     def step(self, actions: Sequence[Action], realtime: bool = False) -> Dict[str, StepResult]:
         self.step_sum += 1
-        return {action.turtle_name: self.single_step(action, realtime) for action in actions}
 
-    def single_step(self, action: Action, realtime: bool = False) -> StepResult:
-        agent = self.agents[action.turtle_name]
-        agent.step_sum += 1
-        pose_before = copy(agent.pose)
-        distance_to_goal_before = self.get_turtle_road_view(agent.name).distance_to_goal
+        before = self.move_agents(actions, realtime)
+        collided_agents: Set[str] = (
+            self.find_collided_agents() if self.parameters.detect_collisions else set()
+        )
+        return {
+            action.turtle_name: self.calculate_step_result(
+                action.turtle_name,
+                before[action.turtle_name],
+                collided=action.turtle_name in collided_agents,
+            )
+            for action in actions
+        }
+
+    def move_agents(
+        self,
+        actions: Iterable[Action],
+        realtime: bool = False,
+    ) -> Dict[str, AgentDataBeforeMove]:
+        return {action.turtle_name: self.move_agent(action, realtime) for action in actions}
+
+    def move_agent(
+        self,
+        action: Action,
+        realtime: bool = False,
+        agent: Optional[TurtleAgent] = None,
+    ) -> AgentDataBeforeMove:
+        agent = agent or self.agents[action.turtle_name]
+        before = AgentDataBeforeMove(
+            agent.pose,
+            self.get_turtle_road_view(agent.name).distance_to_goal,
+        )
 
         # TODO: Studenci - "przejechać 1/2 okresu, skręcić, przejechać pozostałą 1/2"
         if realtime:
@@ -38,9 +69,29 @@ class EnvSingle(EnvBase):
             agent.pose = Position(x, y, angle)
             self.simulator.move_absolute(agent.name, agent.pose)
 
+        return before
+
+    def find_collided_agents(self) -> Set[str]:
+        collided_agents: Set[str] = set()
+        for names in combinations(self.agents, 2):
+            agents = (self.agents[name] for name in names)
+            coordinates = ((agent.pose.x, agent.pose.y) for agent in agents)
+            distance = dist(*coordinates)
+            if distance < self.parameters.collision_distance:
+                collided_agents.update(names)
+        return collided_agents
+
+    def calculate_step_result(
+        self,
+        agent_name: str,
+        before: AgentDataBeforeMove,
+        collided: bool = False,
+        agent: Optional[TurtleAgent] = None,
+    ) -> StepResult:
+        agent = agent or self.agents[agent_name]
         road = self.get_turtle_road_view(agent.name)
-        speed_x = (agent.pose.x - pose_before.x) / self.parameters.seconds_per_step
-        speed_y = (agent.pose.y - pose_before.y) / self.parameters.seconds_per_step
+        speed_x = (agent.pose.x - before.pose.x) / self.parameters.seconds_per_step
+        speed_y = (agent.pose.y - before.pose.y) / self.parameters.seconds_per_step
         current_speed = sqrt(speed_x**2 + speed_y**2)
         suggested_speed = sqrt(road.speed_x**2 + road.speed_y**2)
 
@@ -57,11 +108,11 @@ class EnvSingle(EnvBase):
         else:
             reward_direction = 0
         reward_distance = (
-            distance_to_goal_before - road.distance_to_goal
+            before.distance_to_goal - road.distance_to_goal
         ) * self.parameters.reward_distance_rate
         reward_out_of_track = (
             self.parameters.out_of_track_fine
-            if road.penalty > 0.95 and abs(road.speed_x) + abs(road.speed_y) < 0.01
+            if collided or (road.penalty > 0.95 and abs(road.speed_x) + abs(road.speed_y) < 0.01)
             else 0
         )
         reward = (
@@ -80,6 +131,8 @@ class EnvSingle(EnvBase):
         )
 
         agent.camera_view = self.get_turtle_camera_view(agent.name, agent)
+        if collided:
+            assert agent.camera_view.is_collision_likely()
         return StepResult(agent.camera_view, reward, done)
 
 
@@ -89,7 +142,7 @@ if __name__ == "__main__":
     from .simulator import create_simulator
 
     with create_simulator() as simulator:
-        env = EnvSingle(simulator)
+        env = EnvMulti(simulator)
         env.setup("routes.csv", agent_limit=1)
         env.reset()
         for _ in range(10):
