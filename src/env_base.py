@@ -72,6 +72,7 @@ class TurtleAgent:
     color_api: ColorChecker
     pose: Position = Position()
     camera_view: TurtleCameraView = TurtleCameraView()
+    step_sum: int = 0
 
 
 @dataclass
@@ -251,13 +252,16 @@ class EnvBase(ABC):
         turtle_names: Optional[Iterable[str]] = None,
         randomize_section: bool = False,
     ) -> Dict[str, TurtleAgent]:
-        self.step_sum = 0
+        if turtle_names is None:
+            self.step_sum = 0
+
         for turtle_name in turtle_names or self.agents.keys():
             self.reset_turtle(turtle_name, randomize_section)
         return self.agents
 
     def reset_turtle(self, turtle_name: str, randomize_section: bool = False) -> None:
         agent = self.agents[turtle_name]
+        agent.step_sum = 0
 
         if randomize_section:
             agent.section_id = random.randint(0, len(agent.route) - 1)

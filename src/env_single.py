@@ -4,7 +4,7 @@
 import logging
 from copy import copy
 from dataclasses import dataclass
-from math import cos, sin, sqrt, pi
+from math import cos, pi, sin, sqrt
 
 from .env_base import Action, EnvBase, StepResult
 from .simulator import Position
@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class EnvSingle(EnvBase):
     def single_step(self, action: Action, realtime: bool = False) -> StepResult:
         agent = self.agents[action.turtle_name]
+        agent.step_sum += 1
         pose_before = copy(agent.pose)
         distance_to_goal_before = self.get_turtle_road_view(agent.name).distance_to_goal
 
@@ -68,7 +69,8 @@ class EnvSingle(EnvBase):
             reward_out_of_track < 0
             or road.distance_to_goal <= self.parameters.goal_radius
             or (
-                self.parameters.max_steps is not None and self.step_sum > self.parameters.max_steps
+                self.parameters.max_steps is not None
+                and agent.step_sum > self.parameters.max_steps
             )
         )
 
