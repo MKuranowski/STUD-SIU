@@ -205,14 +205,12 @@ class RewardCalculator:
     collided: bool
     parameters: Parameters
 
-    crashed: bool = field(init=False)
     speed_x: float = field(init=False)
     speed_y: float = field(init=False)
     current_speed: float = field(init=False)
     suggested_speed: float = field(init=False)
 
     def __post_init__(self) -> None:
-        self.crashed = self.collided or self.is_out_of_track()
         self.speed_x = (self.agent.pose.x - self.before.pose.x) / self.parameters.seconds_per_step
         self.speed_y = (self.agent.pose.y - self.before.pose.y) / self.parameters.seconds_per_step
         self.current_speed = sqrt(self.speed_x**2 + self.speed_y**2)
@@ -223,7 +221,8 @@ class RewardCalculator:
             self.speeding_reward()
             + self.direction_reward()
             + self.distance_reward()
-            + self.crash_reward()
+            + self.out_of_track_reward()
+            + self.collision_reward()
         )
         done = self.is_done()
         return total_reward, done
@@ -251,8 +250,11 @@ class RewardCalculator:
             self.before.distance_to_goal - self.road.distance_to_goal
         )
 
-    def crash_reward(self) -> float:
-        return self.parameters.out_of_track_fine if self.crashed else 0.0
+    def out_of_track_reward(self) -> float:
+        return self.parameters.out_of_track_fine if self.is_out_of_track() else 0.0
+
+    def collision_reward(self) -> float:
+        return self.parameters.out_of_track_fine if self.collided else 0.0
 
     def is_out_of_track(self) -> bool:
         return self.road.penalty > 0.95 and abs(self.road.speed_x) + abs(self.road.speed_y) < 0.01
@@ -265,9 +267,10 @@ class RewardCalculator:
 
     def is_done(self) -> bool:
         return (
-            self.crashed
+            self.collided
             or self.road.distance_to_goal <= self.parameters.goal_radius
             or self.is_out_of_steps()
+            or self.is_out_of_track()
         )
 
 
