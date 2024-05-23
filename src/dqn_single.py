@@ -144,6 +144,7 @@ class DQNSingle:
         env: Environment,
         parameters: DQNParameters = DQNParameters(),
         seed: int = 42,
+        signature_prefix: str = "dqns",
     ) -> None:
         # NOTE: The following seeds Python, numpy and tensorflow RNGs
         keras.utils.set_random_seed(seed)
@@ -157,11 +158,12 @@ class DQNSingle:
         )
         self.train_count = 0
         self.epsilon = self.parameters.initial_epsilon
+        self.signature_prefix = signature_prefix
 
     def signature(self) -> str:
         params_signature = f"{self.env.parameters.signature()}_{self.parameters.signature()}"
         params_hash = sha256(params_signature.encode("ascii")).hexdigest()[:6]
-        return f"dqns-{params_hash}-{params_signature}"
+        return f"{self.signature_prefix}-{params_hash}-{params_signature}"
 
     @staticmethod
     def control_to_action(turtle_name: str, control: int) -> Action:
