@@ -165,6 +165,12 @@ class DQNSingle:
         params_hash = sha256(params_signature.encode("ascii")).hexdigest()[:6]
         return f"{self.signature_prefix}-{params_hash}-{params_signature}"
 
+    def get_control(self, last_state: TurtleCameraView, current_state: TurtleCameraView) -> int:
+        if random.random() > self.epsilon:
+            return int(np.argmax(self.decision(self.model, last_state, current_state)))
+        else:
+            return random.randint(0, self.parameters.control_dimension - 1)
+
     @staticmethod
     def control_to_action(turtle_name: str, control: int) -> Action:
         return Action(
@@ -300,11 +306,7 @@ class DQNSingle:
             )
 
             # TODO: Studenci - okresowy zapis modelu
-            if save_model and (episode + 1) % self.parameters.save_period == 0:
-                self.save_model()
-
-            if (episode + 1) % self.parameters.clear_period == 0:
-                force_gc()
+            self.on_episode_increment(episode, save_model)
 
         self.save_model()
         force_gc()
@@ -316,11 +318,7 @@ class DQNSingle:
         total_reward = 0.0
 
         while True:
-            if random.random() > self.epsilon:
-                control = int(np.argmax(self.decision(self.model, last_state, current_state)))
-            else:
-                control = random.randint(0, self.parameters.control_dimension - 1)
-
+            control = self.get_control(last_state, current_state)
             new_state, reward, done = self.env.step(
                 [self.control_to_action(turtle_name, control)],
             )[turtle_name]
@@ -395,6 +393,12 @@ class DQNSingle:
                 y=model_expected_outputs[batch_start:batch_end],
             )
             batch_start, batch_end = batch_end, batch_end + self.parameters.training_batch_size
+
+    def on_episode_increment(self, episode: int, save_model: bool = True) -> None:
+        if save_model and (episode + 1) % self.parameters.save_period == 0:
+            self.save_model()
+        if (episode + 1) % self.parameters.clear_period == 0:
+            force_gc()
 
     def save_model(self) -> None:
         logger.debug("Saving model")
