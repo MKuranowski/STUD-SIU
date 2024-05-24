@@ -501,6 +501,7 @@ class Environment:
         agent: Optional[TurtleAgent] = None,
     ) -> AgentDataBeforeMove:
         agent = agent or self.agents[action.turtle_name]
+        agent.step_sum += 1
         before = AgentDataBeforeMove(
             agent.pose,
             self.get_turtle_road_view(agent.name).distance_to_goal,
