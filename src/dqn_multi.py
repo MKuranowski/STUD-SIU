@@ -138,7 +138,7 @@ class DQNMulti(DQNSingle):
             self.logger.info(
                 "%d episodes(s) finished (now at %d) in %.2f s. Mean reward from last 20: %.3f",
                 len(finished_episodes),
-                self.episodes + len(finished_episodes),
+                self.episodes,
                 elapsed,
                 mean(rewards),
             )
