@@ -66,9 +66,8 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
     with create_simulator() as simulator:
         env = Environment(simulator, parameters=copy(parameters))
         env.setup("routes.csv", agent_limit=1)
-        turtle_name = next(iter(env.agents))
         model = PlaySingle(env, parameters=dqn_parameters)
-        model.train(turtle_name, save_model=False, randomize_section=True)
+        model.train(save_model=False, randomize_section=True)
 
         model.env.parameters.max_steps = 4_000
         env.reset()
