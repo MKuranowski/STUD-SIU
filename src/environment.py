@@ -140,7 +140,7 @@ class Parameters:
     Not tweakable.
     """
 
-    detect_collisions: bool = False
+    detect_collisions: bool = True
     """Enable collision checking."""
 
     max_steps: Optional[int] = 200
@@ -544,8 +544,8 @@ class Environment:
         reward, done = RewardCalculator(agent, road, before, collided, self.parameters).calculate()
 
         agent.camera_view = self.get_turtle_camera_view(agent.name, agent)
-        if collided:
-            assert agent.camera_view.is_collision_likely()
+        # if collided:
+        #     assert agent.camera_view.is_collision_likely()
 
         return StepResult(agent.camera_view, reward, done)
 

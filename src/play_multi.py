@@ -57,7 +57,7 @@ class PlayMulti(DQNMulti):
                     logger.error(
                         "Turtle %s crashed after %d total laps - exiting",
                         name,
-                        total_laps,
+                        total_laps[name],
                     )
                 elif episode.done:
                     agent = self.env.agents[name]
@@ -69,8 +69,9 @@ class PlayMulti(DQNMulti):
                         total_laps[name] += 1
                         should_remove = max_laps is not None and total_laps[name] >= max_laps
                         logger.info(
-                            "Lap %d completed with reward %f",
-                            total_laps,
+                            "Turtle %s completed lap %d reward %f",
+                            name,
+                            total_laps[name],
                             episode.total_reward * (1 + total_laps[name]),
                         )
 
@@ -108,9 +109,10 @@ if __name__ == "__main__":
     with create_simulator() as simulator:
         coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
         env = Environment(simulator, parameters=parameters)
-        env.setup("routes.csv", agent_limit=1)
+        env.setup("routes.csv")
         env.reset()
 
         play = PlayMulti(env)
         play.load_model(args.model)
-        play.play_until_crash()
+        indicator = play.play_until_crash()
+        logger.info("Indicator: %.3f", indicator)
