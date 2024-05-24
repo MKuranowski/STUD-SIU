@@ -6,7 +6,7 @@ from itertools import count
 from pathlib import Path
 from statistics import mean
 from time import perf_counter
-from typing import List, Mapping, Optional, cast
+from typing import Iterable, List, Mapping, Optional, cast
 
 import keras
 import numpy as np
@@ -24,6 +24,17 @@ class DQNMulti(DQNSingle):
         signature_prefix: str = "dqnm",
     ) -> None:
         super().__init__(env, parameters, seed, signature_prefix)
+
+    def input_stacks(
+        self,
+        len: int,
+        lasts: Iterable[TurtleCameraView],
+        currents: Iterable[TurtleCameraView],
+    ) -> NDArrayFloat:
+        out = np.zeros((len, self.env.parameters.grid_res, self.env.parameters.grid_res, 10))
+        for i, (last, current) in enumerate(zip(lasts, currents)):
+            self.input_stack(last, current, out[i])
+        return out
 
     def input_stack(
         self,
