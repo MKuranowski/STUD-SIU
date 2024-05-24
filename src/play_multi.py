@@ -81,6 +81,7 @@ class PlayMulti(DQNMulti):
             # Remove crashed turtles
             for name in turtles_to_remove:
                 self.env.simulator.kill_turtle(name)
+                del self.env.agents[name]
                 crashed_episodes[name] = active_episodes.pop(name)
 
         return sum(
