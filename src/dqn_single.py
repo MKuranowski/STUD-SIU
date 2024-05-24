@@ -13,19 +13,18 @@ from operator import attrgetter
 from pathlib import Path
 from statistics import mean
 from time import perf_counter
-from typing import Iterable, List, NamedTuple, Optional, Union, cast
+from typing import Iterable, List, Optional, Union, cast
 
 import keras
 import numpy as np
 import numpy.typing as npt
+from typing_extensions import Self
 
-from .environment import Action, Environment, TurtleCameraView
+from .environment import Action, Environment, StepResult, TurtleAgent, TurtleCameraView
 
 MODELS_DIR = Path("models")
 
 NDArrayFloat = npt.NDArray[np.float_]
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -129,7 +128,8 @@ class DQNParameters:
         )
 
 
-class MemoryEntry(NamedTuple):
+@dataclass
+class MemoryEntry:
     last_state: TurtleCameraView
     current_state: TurtleCameraView
     control: int
@@ -138,12 +138,62 @@ class MemoryEntry(NamedTuple):
     done: bool
 
 
+@dataclass
+class Episode:
+    turtle_name: str
+    last_state: TurtleCameraView
+    current_state: TurtleCameraView
+    total_reward: float = 0.0
+    done: bool = False
+
+    control: Optional[int] = None
+    action: Optional[Action] = None
+    result: Optional[StepResult] = None
+
+    @classmethod
+    def for_agent(cls, agent: TurtleAgent) -> Self:
+        return cls(agent.name, last_state=agent.camera_view, current_state=agent.camera_view)
+
+    def reset(self, agent: TurtleAgent) -> None:
+        assert agent.name == self.turtle_name
+        self.last_state = agent.camera_view
+        self.current_state = agent.camera_view
+        self.total_reward = 0.0
+        self.done = False
+        self.control = None
+        self.action = None
+        self.result = None
+
+    def as_memory_entry(self) -> MemoryEntry:
+        assert self.control is not None
+        assert self.result is not None
+        return MemoryEntry(
+            self.last_state,
+            self.current_state,
+            self.control,
+            self.result.reward,
+            self.result.map,
+            self.result.done,
+        )
+
+    def advance(self) -> None:
+        assert self.result is not None
+        self.last_state = self.current_state
+        self.current_state = self.result.map
+        self.total_reward += self.result.reward
+        self.done = self.result.done
+        self.control = None
+        self.action = None
+        self.result = None
+
+
 class DQNSingle:
     def __init__(
         self,
         env: Environment,
         parameters: DQNParameters = DQNParameters(),
         seed: int = 42,
+        signature_prefix: str = "dqns",
     ) -> None:
         # NOTE: The following seeds Python, numpy and tensorflow RNGs
         keras.utils.set_random_seed(seed)
@@ -155,13 +205,23 @@ class DQNSingle:
         self.replay_memory: "deque[MemoryEntry]" = deque(
             maxlen=self.parameters.replay_memory_max_size
         )
+        self.episodes = 0
         self.train_count = 0
         self.epsilon = self.parameters.initial_epsilon
+        self.signature_prefix = signature_prefix
+
+        self.logger = logging.getLogger(type(self).__name__)
 
     def signature(self) -> str:
         params_signature = f"{self.env.parameters.signature()}_{self.parameters.signature()}"
         params_hash = sha256(params_signature.encode("ascii")).hexdigest()[:6]
-        return f"dqns-{params_hash}-{params_signature}"
+        return f"{self.signature_prefix}-{params_hash}-{params_signature}"
+
+    def get_control(self, last_state: TurtleCameraView, current_state: TurtleCameraView) -> int:
+        if random.random() > self.epsilon:
+            return int(np.argmax(self.decision(self.model, last_state, current_state)))
+        else:
+            return random.randint(0, self.parameters.control_dimension - 1)
 
     @staticmethod
     def control_to_action(turtle_name: str, control: int) -> Action:
@@ -272,94 +332,68 @@ class DQNSingle:
         )
         return model
 
-    def train(
-        self,
-        turtle_name: str,
-        save_model: bool = True,
-        randomize_section: bool = True,
-    ) -> None:
-        rewards: List[float] = []
+    def train(self, save_model: bool = True, randomize_section: bool = True) -> None:
+        rewards: "deque[float]" = deque(maxlen=20)
         self.replay_memory.clear()
         self.train_count = 0
+        self.episodes = 0
         self.epsilon = self.parameters.initial_epsilon
 
-        for episode in range(self.parameters.max_episodes):
+        assert len(self.env.agents) == 1
+        turtle_name = next(iter(self.env.agents))
+
+        while self.episodes < self.parameters.max_episodes:
             start_time = perf_counter()
-            reward = self.train_episode(turtle_name, randomize_section)
-            rewards.append(reward)
+            self.env.reset(randomize_section=randomize_section)
+            episode = Episode.for_agent(self.env.agents[turtle_name])
+            self.train_episode(episode)
+            rewards.append(episode.total_reward)
             elapsed = perf_counter() - start_time
 
-            logger.info(
+            self.logger.info(
                 "Episode %d finished in %.2f s. Reward from episode %.3f, mean from last 20 %.3f.",
-                episode,
+                self.episodes,
                 elapsed,
-                reward,
-                mean(rewards[-20:]),
+                episode.total_reward,
+                mean(rewards),
             )
 
             # TODO: Studenci - okresowy zapis modelu
-            if save_model and (episode + 1) % self.parameters.save_period == 0:
-                self.save_model()
-
-            if (episode + 1) % self.parameters.clear_period == 0:
-                force_gc()
+            self.increment_episode(save_model)
 
         self.save_model()
         force_gc()
 
-    def train_episode(self, turtle_name: str, randomize_section: bool = True) -> float:
-        self.env.reset(turtle_names=[turtle_name], randomize_section=randomize_section)
-        current_state = self.env.get_turtle_camera_view(turtle_name)
-        last_state = current_state.copy()
-        total_reward = 0.0
+    def train_episode(self, episode: Episode) -> None:
+        while not episode.done:
+            episode.control = self.get_control(episode.last_state, episode.current_state)
+            episode.action = self.control_to_action(episode.turtle_name, episode.control)
+            episode.result = self.env.step([episode.action])[episode.turtle_name]
 
-        while True:
-            if random.random() > self.epsilon:
-                control = int(np.argmax(self.decision(self.model, last_state, current_state)))
-            else:
-                control = random.randint(0, self.parameters.control_dimension - 1)
+            self.replay_memory.append(episode.as_memory_entry())
+            self.train_minibatch_if_applicable()
 
-            new_state, reward, done = self.env.step(
-                [self.control_to_action(turtle_name, control)],
-            )[turtle_name]
-
-            total_reward += reward
-            self.replay_memory.append(
-                MemoryEntry(
-                    last_state,
-                    current_state,
-                    control,
-                    reward,
-                    new_state,
-                    done,
-                )
-            )
-
-            if (
-                len(self.replay_memory) >= self.parameters.replay_memory_min_size
-                and self.env.step_sum % self.parameters.train_period == 0
-            ):
-                start_time = perf_counter()
-                self.train_minibatch()
-                elapsed = perf_counter() - start_time
-
-                logger.debug("Minibatch %d finished in %.2f s", self.train_count, elapsed)
-                self.train_count += 1
-
-                if self.train_count % self.parameters.target_update_period == 0:
-                    logger.debug("Updating target model weights")
-                    self.target_model.set_weights(self.model.get_weights())
-
-            if done:
-                break
-
-            last_state, current_state = current_state, new_state
+            episode.advance()
             self.epsilon = max(
                 self.parameters.epsilon_min,
                 self.epsilon * self.parameters.epsilon_decay,
             )
 
-        return total_reward
+    def train_minibatch_if_applicable(self) -> None:
+        if (
+            len(self.replay_memory) >= self.parameters.replay_memory_min_size
+            and self.env.step_sum % self.parameters.train_period == 0
+        ):
+            start_time = perf_counter()
+            self.train_minibatch()
+            elapsed = perf_counter() - start_time
+
+            self.logger.debug("Minibatch %d finished in %.2f s", self.train_count, elapsed)
+            self.train_count += 1
+
+            if self.train_count % self.parameters.target_update_period == 0:
+                self.logger.debug("Updating target model weights")
+                self.target_model.set_weights(self.model.get_weights())
 
     def train_minibatch(self) -> None:
         moves = random.sample(self.replay_memory, self.parameters.minibatch_size)
@@ -394,8 +428,15 @@ class DQNSingle:
             )
             batch_start, batch_end = batch_end, batch_end + self.parameters.training_batch_size
 
+    def increment_episode(self, save_model: bool = True) -> None:
+        self.episodes += 1
+        if save_model and (self.episodes + 1) % self.parameters.save_period == 0:
+            self.save_model()
+        if (self.episodes + 1) % self.parameters.clear_period == 0:
+            force_gc()
+
     def save_model(self) -> None:
-        logger.debug("Saving model")
+        self.logger.debug("Saving model")
         self.model.save(MODELS_DIR / f"{self.signature()}.h5")
 
     def load_model(self, filename: Union[str, Path]) -> None:
@@ -427,9 +468,7 @@ if __name__ == "__main__":
         env = Environment(simulator)
         env.setup("routes.csv", agent_limit=1)
 
-        turtle_name = next(iter(env.agents))
-
         dqn = DQNSingle(env)
         if args.model:
             dqn.load_model(args.model)
-        dqn.train(turtle_name, randomize_section=True)
+        dqn.train(randomize_section=True)

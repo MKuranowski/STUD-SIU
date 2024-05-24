@@ -7,7 +7,8 @@ import csv
 import logging
 from copy import copy
 from hashlib import sha256
-from itertools import count
+from itertools import count, repeat
+from math import inf
 from multiprocessing.pool import Pool
 from operator import attrgetter
 from pathlib import Path
@@ -21,12 +22,13 @@ from filelock import FileLock
 
 from .dqn_single import DQNParameters
 from .environment import Environment, Parameters
+from .play_multi import PlayMulti
 from .play_single import PlaySingle
 from .simulator import create_simulator
 
 MODELS_DIR = Path("models")
-MODELS_CSV = Path("dqn_single_models.csv")
-MODELS_CSV_LOCK = MODELS_CSV.with_suffix(".csv.lock")
+MODELS_CSV_SINGLE = Path("dqn_single_models.csv")
+MODELS_CSV_MULTI = Path("dqn_multi_models.csv")
 
 NDArrayFloat = npt.NDArray[np.float_]
 
@@ -39,11 +41,11 @@ class ModelResult(NamedTuple):
     signature: str
 
 
-def multithreaded_train(args: Tuple[int, Parameters, DQNParameters]) -> ModelResult:
+def multithreaded_train(args: Tuple[int, Parameters, DQNParameters, bool]) -> ModelResult:
     logger.info("Starting iteration %d", args[0])
 
     start = perf_counter()
-    result = train(args[1], args[2])
+    result = train(args[1], args[2], args[3])
     elapsed = perf_counter() - start
 
     logger.info(
@@ -55,52 +57,57 @@ def multithreaded_train(args: Tuple[int, Parameters, DQNParameters]) -> ModelRes
     return result
 
 
-def train(parameters: Parameters, dqn_parameters: DQNParameters) -> ModelResult:
+def train(parameters: Parameters, dqn_parameters: DQNParameters, multi: bool) -> ModelResult:
     signature = f"{parameters.signature()}_{dqn_parameters.signature()}"
     hash = sha256(signature.encode("ascii")).hexdigest()[:6]
 
-    if result := load_result_for_signature(signature):
+    if result := load_result_for_signature(signature, multi):
         logger.error("%s was already evaluated", hash)
         return result
 
     with create_simulator() as simulator:
         env = Environment(simulator, parameters=copy(parameters))
-        env.setup("routes.csv", agent_limit=1)
-        turtle_name = next(iter(env.agents))
-        model = PlaySingle(env, parameters=dqn_parameters)
-        model.train(turtle_name, save_model=False, randomize_section=True)
+        env.setup("routes.csv", agent_limit=inf if multi else 1)
+        model = (PlayMulti if multi else PlaySingle)(env, parameters=dqn_parameters)
+        model.train(save_model=False, randomize_section=True)
 
         model.env.parameters.max_steps = 4_000
         env.reset()
         reward = model.play_until_crash(max_laps=4)
 
     result = ModelResult(reward, hash, signature)
-    save_result(result)
+    save_result(result, multi)
     return result
 
 
-def load_result_for_signature(signature: str) -> Optional[ModelResult]:
-    with FileLock(MODELS_CSV_LOCK):
-        return load_models_csv().get(signature)
+def load_result_for_signature(signature: str, multi: bool = False) -> Optional[ModelResult]:
+    csv_file = MODELS_CSV_MULTI if multi else MODELS_CSV_SINGLE
+    lock_file = csv_file.with_suffix(".csv.lock")
+
+    with FileLock(lock_file):
+        return load_models_csv(csv_file).get(signature)
 
 
-def save_result(result: ModelResult):
-    with FileLock(MODELS_CSV_LOCK):
-        results_by_signature = load_models_csv()
+def save_result(result: ModelResult, multi: bool = False) -> None:
+    csv_file = MODELS_CSV_MULTI if multi else MODELS_CSV_SINGLE
+    lock_file = csv_file.with_suffix(".csv.lock")
+
+    with FileLock(lock_file):
+        results_by_signature = load_models_csv(csv_file)
         results_by_signature[result.signature] = result
-        save_models_csv(results_by_signature)
+        save_models_csv(csv_file, results_by_signature)
 
 
-def load_models_csv() -> Dict[str, ModelResult]:
-    with MODELS_CSV.open("r", encoding="ascii", newline="") as f:
+def load_models_csv(file: Path) -> Dict[str, ModelResult]:
+    with file.open("r", encoding="ascii", newline="") as f:
         return {
             i["signature"]: ModelResult(float(i["reward"]), i["hash"], i["signature"])
             for i in csv.DictReader(f)
         }
 
 
-def save_models_csv(results_by_signature: Dict[str, ModelResult]):
-    with MODELS_CSV.open("w", encoding="ascii", newline="") as f:
+def save_models_csv(file: Path, results_by_signature: Dict[str, ModelResult]) -> None:
+    with file.open("w", encoding="ascii", newline="") as f:
         w = csv.writer(f)
         w.writerow(("reward", "hash", "signature"))
         w.writerows(sorted(results_by_signature.values(), key=attrgetter("reward"), reverse=True))
@@ -133,6 +140,7 @@ if __name__ == "__main__":
         default=42,
         help="seed for choosing parameters",
     )
+    arg_parser.add_argument("-m", "--multi", action="store_true", help="multi-agent estimation")
     arg_parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
     args = arg_parser.parse_args()
 
@@ -144,24 +152,18 @@ if __name__ == "__main__":
     max_episodes = 4_000
 
     parameters_distributions = {
-        "grid_res": [5, 7, 9],
-        "cam_res": [50, 100, 200, 300],
-        "reward_forward_rate": [0.5, 1.0, 2.0, 4.0, 8.0],
+        "grid_res": [7, 9],
+        "cam_res": [200, 250, 300],
+        "reward_forward_rate": [1.0, 2.0, 4.0],
         "reward_reverse_rate": [-10.0, -15.0, -20],
         "reward_speeding_rate": [-10.0, -15.0, -20.0],
-        "reward_distance_rate": [2, 4, 8, 16],
+        "reward_distance_rate": [4, 8, 16],
         "out_of_track_fine": [-10.0, -15.0, -20.0],
-        "max_steps": [10, 20, 40, 80],
-        "goal_radius": [1.0],
+        "max_steps": [20, 40, 80],
     }
     dqn_parameters_distributions = {
-        "discount": [0.8, 0.85, 0.9, 0.95],
-        "replay_memory_max_size": [20_000],
-        "replay_memory_min_size": [4_000],
-        "minibatch_size": [32],
-        "training_batch_divisor": [4],
-        "target_update_period": [20],
-        "train_period": [4],
+        "discount": [0.8, 0.85, 0.9],
+        "save_period": [250],
     }
 
     random = Random(seed)
@@ -183,5 +185,10 @@ if __name__ == "__main__":
     with Pool(args.jobs, maxtasksperchild=1) as pool:
         results = pool.map(
             multithreaded_train,
-            zip(count(), parameters_from_distributions, dqn_parameters_from_distributions),
+            zip(
+                count(),
+                parameters_from_distributions,
+                dqn_parameters_from_distributions,
+                repeat(args.multi),
+            ),
         )
