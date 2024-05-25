@@ -8,7 +8,6 @@ import logging
 from copy import copy
 from hashlib import sha256
 from itertools import count, repeat
-from math import inf
 from multiprocessing.pool import Pool
 from operator import attrgetter
 from pathlib import Path
@@ -67,7 +66,7 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters, multi: bool) ->
 
     with create_simulator() as simulator:
         env = Environment(simulator, parameters=copy(parameters))
-        env.setup("routes.csv", agent_limit=7 if multi else 1)
+        env.setup("routes.csv", agent_limit=14 if multi else 1)
         model = (PlayMulti if multi else PlaySingle)(env, parameters=dqn_parameters)
         model.train(save_model=False, randomize_section=True)
 

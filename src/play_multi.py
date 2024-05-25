@@ -8,7 +8,6 @@ from pathlib import Path
 from statistics import fmean
 from typing import Dict, List, Optional, cast
 
-import keras
 import numpy as np
 
 from .dqn_multi import DQNMulti
@@ -126,7 +125,7 @@ if __name__ == "__main__":
     with create_simulator() as simulator:
         coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
         env = Environment(simulator, parameters=parameters)
-        env.setup("routes.csv", agent_limit=7)
+        env.setup("routes.csv", agent_limit=14)
         env.reset()
 
         play = PlayMulti(env)
