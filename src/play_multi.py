@@ -27,7 +27,7 @@ class PlayMulti(DQNMulti):
         total_sections = {name: 0 for name in active_episodes}
         total_laps = {name: 0 for name in active_episodes}
 
-        while len(active_episodes) >= len(crashed_episodes):
+        while len(active_episodes) > len(crashed_episodes):
             # Set controls and actions
             for name, episode in active_episodes.items():
                 episode.control = int(
