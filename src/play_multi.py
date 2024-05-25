@@ -24,6 +24,7 @@ class PlayMulti(DQNMulti):
             name: Episode.for_agent(agent) for name, agent in self.env.agents.items()
         }
         crashed_episodes: Dict[str, Episode] = {}
+        total_sections = {name: 0 for name in active_episodes}
         total_laps = {name: 0 for name in active_episodes}
 
         while len(active_episodes) >= len(crashed_episodes):
@@ -65,7 +66,9 @@ class PlayMulti(DQNMulti):
                     agent.section_id = (agent.section_id + 1) % len(agent.route)
                     agent.section = agent.route[agent.section_id]
 
-                    if agent.section_id == 0:
+                    total_sections[name] += 1
+
+                    if total_sections[name] % len(agent.route) == 0:
                         total_laps[name] += 1
                         should_remove = max_laps is not None and total_laps[name] >= max_laps
                         logger.info(
