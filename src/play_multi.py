@@ -4,22 +4,25 @@
 # pyright: basic
 
 import logging
-import re
 from pathlib import Path
+from statistics import fmean
 from typing import Dict, List, Optional, cast
 
+import keras
 import numpy as np
 
 from .dqn_multi import DQNMulti
 from .dqn_single import Episode
 from .environment import Action, Parameters
 from .play_single import extract_camera_res_from_filename, extract_grid_res_from_filename
+from .simulator import Position
 
 logger = logging.getLogger(__name__)
 
 
 class PlayMulti(DQNMulti):
     def play_until_crash(self, max_laps: Optional[int] = None) -> float:
+        self.env.reset(randomize_section=True)
         active_episodes = {
             name: Episode.for_agent(agent) for name, agent in self.env.agents.items()
         }
@@ -83,14 +86,17 @@ class PlayMulti(DQNMulti):
 
             # Remove crashed turtles
             for name in turtles_to_remove:
-                self.env.simulator.kill_turtle(name)
-                del self.env.agents[name]
+                self.env.simulator.move_absolute(name, Position())
+                self.env.agents[name].pose = Position()
                 crashed_episodes[name] = active_episodes.pop(name)
 
         return sum(
             episode.total_reward * (1 + total_laps[name])
             for name, episode in crashed_episodes.items()
         )
+
+    def evaluate(self, tries: int = 3, max_laps: Optional[int] = None) -> float:
+        return fmean([self.play_until_crash(max_laps) for _ in range(tries)])
 
 
 if __name__ == "__main__":
@@ -102,6 +108,12 @@ if __name__ == "__main__":
     from .simulator import create_simulator
 
     arg_parser = ArgumentParser()
+    arg_parser.add_argument(
+        "-e",
+        "--evaluate",
+        action="store_true",
+        help="run the model 3 times and report mean indicator from all runs",
+    )
     arg_parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
     arg_parser.add_argument("model", type=Path, help="path to model")
     args = arg_parser.parse_args()
@@ -119,5 +131,5 @@ if __name__ == "__main__":
 
         play = PlayMulti(env)
         play.load_model(args.model)
-        indicator = play.play_until_crash()
+        indicator = play.evaluate() if args.evaluate else play.play_until_crash()
         logger.info("Indicator: %.3f", indicator)

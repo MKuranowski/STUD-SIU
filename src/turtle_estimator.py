@@ -73,7 +73,11 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters, multi: bool) ->
 
         model.env.parameters.max_steps = 4_000
         env.reset()
-        reward = model.play_until_crash(max_laps=4)
+        reward = (
+            model.evaluate(max_laps=4)
+            if isinstance(model, PlayMulti)
+            else model.play_until_crash(max_laps=4)
+        )
 
     result = ModelResult(reward, hash, signature)
     save_result(result, multi)
