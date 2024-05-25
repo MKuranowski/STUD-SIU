@@ -26,7 +26,7 @@ class PlayMulti(DQNMulti):
         crashed_episodes: Dict[str, Episode] = {}
         total_laps = {name: 0 for name in active_episodes}
 
-        while active_episodes:
+        while len(active_episodes) > len(crashed_episodes):
             # Set controls and actions
             for name, episode in active_episodes.items():
                 episode.control = int(
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     with create_simulator() as simulator:
         coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
         env = Environment(simulator, parameters=parameters)
-        env.setup("routes.csv")
+        env.setup("routes.csv", agent_limit=7)
         env.reset()
 
         play = PlayMulti(env)
