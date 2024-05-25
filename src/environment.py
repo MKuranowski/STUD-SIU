@@ -305,13 +305,18 @@ class Environment:
 
     def create_agents(self, agent_limit: float = inf) -> None:
         agent_count = 0
-        for route_id, sections in self.routes.items():
-            for section_id, section in enumerate(sections):
-                for agent_in_section_id in range(section.agents_no):
-                    self.spawn_agent(route_id, section_id, agent_in_section_id)
-                    agent_count += 1
-                    if agent_count >= agent_limit:
-                        return
+        spots = [
+            (route_id, section_id, agent_in_section_id)
+            for route_id, sections in self.routes.items()
+            for section_id, section in enumerate(sections)
+            for agent_in_section_id in range(section.agents_no)
+        ]
+        random.shuffle(spots)
+        for route_id, section_id, agent_in_section_id in spots:
+            self.spawn_agent(route_id, section_id, agent_in_section_id)
+            agent_count += 1
+            if agent_count >= agent_limit:
+                return
 
     def spawn_agent(self, route_id: int, section_id: int, agent_in_section_id: int) -> None:
         route = self.routes[route_id]
