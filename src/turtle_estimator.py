@@ -67,7 +67,7 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters, multi: bool) ->
 
     with create_simulator() as simulator:
         env = Environment(simulator, parameters=copy(parameters))
-        env.setup("routes.csv", agent_limit=inf if multi else 1)
+        env.setup("routes.csv", agent_limit=7 if multi else 1)
         model = (PlayMulti if multi else PlaySingle)(env, parameters=dqn_parameters)
         model.train(save_model=False, randomize_section=True)
 
