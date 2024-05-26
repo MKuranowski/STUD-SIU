@@ -352,6 +352,7 @@ class Environment:
     def reset_turtle(self, turtle_name: str, randomize_section: bool = False) -> None:
         agent = self.agents[turtle_name]
         agent.step_sum = 0
+        tries = 0
 
         while True:
             if randomize_section:
@@ -360,8 +361,12 @@ class Environment:
             try:
                 self.try_reset_turtle_within_section(turtle_name, agent)
                 break
-            except SpawnError:
-                pass
+            except SpawnError as e:
+                tries += 1
+                if tries >= 1_000:
+                    raise SpawnError(
+                        f"failed to spawn turtle {turtle_name} after {tries} tries",
+                    ) from e
 
         agent.camera_view = self.get_turtle_camera_view(turtle_name, agent)
 
