@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 import csv
+import logging
 import random
 from dataclasses import dataclass, field
 from itertools import combinations
@@ -14,6 +15,8 @@ import numpy.typing as npt
 from .simulator import ColorChecker, Position, Simulator
 
 NDArrayFloat = npt.NDArray[np.float_]
+
+logger = logging.getLogger(__name__)
 
 
 class SpawnError(ValueError):
@@ -379,10 +382,7 @@ class Environment:
         self.simulator.move_absolute(turtle_name, agent.pose)
 
         speed_x, speed_y, _, _, _, _ = self.get_turtle_road_view(turtle_name, agent)
-        if (
-            self.parameters.detect_collisions
-            and turtle_name in self.find_collided_agents()
-        ):
+        if self.parameters.detect_collisions and turtle_name in self.find_collided_agents():
             raise SpawnError("collision")
 
         if abs(speed_x) + abs(speed_y) <= 0.01:
@@ -548,11 +548,18 @@ class Environment:
         agent = agent or self.agents[agent_name]
         road = self.get_turtle_road_view(agent.name)
 
-        reward, done = RewardCalculator(agent, road, before, collided, self.parameters).calculate()
+        if collided and not agent.camera_view.is_collision_likely():
+            logger.warn("%s has collision, but no turtle in nearest camera cell", agent_name)
+
+        reward, done = RewardCalculator(
+            agent,
+            road,
+            before,
+            collided and agent.camera_view.is_collision_likely(),
+            self.parameters,
+        ).calculate()
 
         agent.camera_view = self.get_turtle_camera_view(agent.name, agent)
-        # if collided:
-        #     assert agent.camera_view.is_collision_likely()
 
         return StepResult(agent.camera_view, reward, done)
 
