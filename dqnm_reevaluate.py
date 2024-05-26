@@ -2,6 +2,7 @@ import logging
 from argparse import ArgumentParser
 from multiprocessing import Pool as ProcessPool
 from pathlib import Path
+from typing import Iterable
 
 import coloredlogs
 
@@ -48,10 +49,18 @@ if __name__ == "__main__":
         action="store_true",
         help="only reevaluate models not present in the CSV",
     )
+    arg_parser.add_argument(
+        "models",
+        type=Path,
+        nargs="*",
+        help="path to models to reevaluate, if empty falls back to all models or unknown models",
+    )
     args = arg_parser.parse_args()
+
+    models: Iterable[Path] = args.models or Path("models").glob("dqnm-*.h5")
 
     with ProcessPool(maxtasksperchild=1) as pool:
         pool.starmap(
             reevaluate,
-            ((model, args.unknown_only) for model in Path("models").glob("dqnm-*.h5")),
+            ((model, args.unknown_only) for model in models),
         )
