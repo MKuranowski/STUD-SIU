@@ -115,7 +115,7 @@ class DQNMulti(DQNSingle):
         )
         return model
 
-    def train(self, save_model: bool = True, randomize_section: bool = True) -> None:
+    def train(self, save_model: bool = True, randomize_section: bool = False) -> None:
         rewards: "deque[float]" = deque(maxlen=20)
         self.replay_memory.clear()
         self.train_count = 0
@@ -206,4 +206,4 @@ if __name__ == "__main__":
         dqn = DQNMulti(env)
         if args.model:
             dqn.load_model(args.model)
-        dqn.train(randomize_section=True)
+        dqn.train(randomize_section=False)

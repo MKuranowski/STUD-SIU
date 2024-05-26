@@ -68,7 +68,7 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters, multi: bool) ->
         env = Environment(simulator, parameters=copy(parameters))
         env.setup("routes.csv", agent_limit=14 if multi else 1)
         model = (PlayMulti if multi else PlaySingle)(env, parameters=dqn_parameters)
-        model.train(save_model=False, randomize_section=True)
+        model.train(save_model=False, randomize_section=not multi)
 
         model.env.parameters.max_steps = 4_000
         env.reset()
