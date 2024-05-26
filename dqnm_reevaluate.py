@@ -14,7 +14,7 @@ logger = logging.getLogger("dqnm_reevaluate")
 
 
 def reevaluate(model: Path) -> None:
-    _, hash, signature = model.name.split("-", maxsplit=2)
+    _, hash, signature = model.stem.split("-", maxsplit=2)
     print(f"{hash} - starting")
     parameters = Parameters(
         max_steps=None,
