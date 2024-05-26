@@ -381,7 +381,7 @@ class Environment:
         speed_x, speed_y, _, _, _, _ = self.get_turtle_road_view(turtle_name, agent)
         if (
             self.parameters.detect_collisions
-            and self.get_turtle_camera_view(turtle_name, agent).is_collision_likely()
+            and turtle_name in self.find_collided_agents()
         ):
             raise SpawnError("collision")
 
