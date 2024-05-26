@@ -74,7 +74,6 @@ class TurtleAgent:
     route: List[RouteSection]
     section_id: int
     section: RouteSection
-    id_within_section: int
     color_api: ColorChecker
     pose: Position = Position()
     camera_view: TurtleCameraView = TurtleCameraView()
@@ -306,26 +305,24 @@ class Environment:
     def create_agents(self, agent_limit: float = inf) -> None:
         agent_count = 0
         spots = [
-            (route_id, section_id, agent_in_section_id)
+            (route_id, section_id)
             for route_id, sections in self.routes.items()
             for section_id, section in enumerate(sections)
-            for agent_in_section_id in range(section.agents_no)
+            for _ in range(section.agents_no)
         ]
         random.shuffle(spots)
-        for route_id, section_id, agent_in_section_id in spots:
-            self.spawn_agent(route_id, section_id, agent_in_section_id)
+        for route_id, section_id in spots:
+            self.spawn_agent(route_id, section_id, agent_id=agent_count)
             agent_count += 1
             if agent_count >= agent_limit:
                 return
 
-    def spawn_agent(self, route_id: int, section_id: int, agent_in_section_id: int) -> None:
+    def spawn_agent(self, route_id: int, section_id: int, agent_id: int) -> None:
         route = self.routes[route_id]
         section = route[section_id]
 
-        # NOTE: The rospy backend is stupid as *** and only accepts [A-Za-z/] characters
-        name = "/".join(
-            (int_to_ascii(route_id), int_to_ascii(section_id), int_to_ascii(agent_in_section_id))
-        )
+        # NOTE: The rospy backend is stupid as *** and only accepts [A-Za-z/] characters in names
+        name = int_to_ascii(agent_id)
         if self.simulator.has_turtle(name):
             self.simulator.kill_turtle(name)
         self.simulator.spawn_turtle(name)
@@ -335,7 +332,6 @@ class Environment:
             route=self.routes[route_id],
             section_id=section_id,
             section=section,
-            id_within_section=agent_in_section_id,
             color_api=self.simulator.get_color_checker(name),
         )
 
