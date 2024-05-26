@@ -21,7 +21,9 @@ logger = logging.getLogger(__name__)
 
 class PlayMulti(DQNMulti):
     def play_until_crash(self, max_laps: Optional[int] = None) -> float:
-        self.env.reset(randomize_section=True)
+        self.env.setup("routes.csv", agent_limit=14)
+        self.env.reset(randomize_section=False)
+
         active_episodes = {
             name: Episode.for_agent(agent) for name, agent in self.env.agents.items()
         }
