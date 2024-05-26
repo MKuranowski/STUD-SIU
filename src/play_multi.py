@@ -59,7 +59,7 @@ class PlayMulti(DQNMulti):
 
                 if episode.done and not self.env.goal_reached(name):
                     should_remove = True
-                    logger.warn(
+                    logger.warning(
                         "Turtle %s crashed after %d total laps",
                         name,
                         total_laps[name],
@@ -132,5 +132,5 @@ if __name__ == "__main__":
 
         play = PlayMulti(env)
         play.load_model(args.model)
-        indicator = play.evaluate() if args.evaluate else play.play_until_crash()
+        indicator = play.evaluate(max_laps=4) if args.evaluate else play.play_until_crash()
         logger.info("Indicator: %.3f", indicator)
