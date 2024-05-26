@@ -87,7 +87,7 @@ def load_result_for_signature(signature: str, multi: bool = False) -> Optional[M
     csv_file = MODELS_CSV_MULTI if multi else MODELS_CSV_SINGLE
     lock_file = csv_file.with_suffix(".csv.lock")
 
-    with FileLock(lock_file):
+    with FileLock(lock_file, timeout=10.0):
         return load_models_csv(csv_file).get(signature)
 
 
@@ -95,7 +95,7 @@ def save_result(result: ModelResult, multi: bool = False) -> None:
     csv_file = MODELS_CSV_MULTI if multi else MODELS_CSV_SINGLE
     lock_file = csv_file.with_suffix(".csv.lock")
 
-    with FileLock(lock_file):
+    with FileLock(lock_file, timeout=10.0):
         results_by_signature = load_models_csv(csv_file)
         results_by_signature[result.signature] = result
         save_models_csv(csv_file, results_by_signature)
