@@ -59,8 +59,8 @@ class PlayMulti(DQNMulti):
 
                 if episode.done and not self.env.goal_reached(name):
                     should_remove = True
-                    logger.error(
-                        "Turtle %s crashed after %d total laps - exiting",
+                    logger.warn(
+                        "Turtle %s crashed after %d total laps",
                         name,
                         total_laps[name],
                     )
