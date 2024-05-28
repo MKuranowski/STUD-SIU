@@ -23,7 +23,7 @@ from .dqn_single import DQNParameters
 from .environment import Environment, Parameters
 from .play_multi import PlayMulti
 from .play_single import PlaySingle
-from .simulator import create_simulator
+from .simulator import Simulator, create_simulator
 
 MODELS_DIR = Path("models")
 MODELS_CSV_SINGLE = Path("dqn_single_models.csv")
@@ -81,18 +81,33 @@ def train(
         else:
             model = PlaySingle(env, parameters=dqn_parameters)
         model.train(save_model=False, randomize_section=not multi)
+        path = model.save_path()
 
         model.env.parameters.max_steps = 4_000
-        env.reset()
-        reward = (
-            model.evaluate(max_laps=4)
-            if isinstance(model, PlayMulti)
-            else model.play_until_crash(max_laps=4)
-        )
+        reward = evaluate(path, simulator, parameters, multi)
 
     result = ModelResult(reward, hash, signature)
     save_result(result, multi)
     return result
+
+
+def evaluate(path: Path, simulator: Simulator, parameters: Parameters, multi: bool) -> float:
+    parameters = Parameters(
+        max_steps=None,
+        grid_res=parameters.grid_res,
+        cam_res=parameters.cam_res,
+    )
+    env = Environment(simulator, parameters)
+    env.setup("routes.csv", agent_limit=14 if multi else 1)
+    env.reset()
+    if multi:
+        model = PlayMulti(env)
+        model.load_model(path)
+        return model.evaluate(max_laps=4)
+    else:
+        model = PlaySingle(env)
+        model.load_model(path)
+        return model.play_until_crash(max_laps=4)
 
 
 def load_result_for_signature(signature: str, multi: bool = False) -> Optional[ModelResult]:

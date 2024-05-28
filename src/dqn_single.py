@@ -435,9 +435,12 @@ class DQNSingle:
         if (self.episodes + 1) % self.parameters.clear_period == 0:
             force_gc()
 
+    def save_path(self) -> Path:
+        return MODELS_DIR / f"{self.signature()}.h5"
+
     def save_model(self) -> None:
         self.logger.debug("Saving model")
-        self.model.save(MODELS_DIR / f"{self.signature()}.h5")
+        self.model.save(self.save_path())
 
     def load_model(self, filename: Union[str, Path]) -> None:
         self.model = cast(keras.Sequential, keras.models.load_model(filename))
