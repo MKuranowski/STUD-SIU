@@ -4,6 +4,7 @@
 # pyright: basic
 
 import logging
+from itertools import chain
 from pathlib import Path
 from statistics import fmean
 from typing import Dict, List, Optional, cast
@@ -93,7 +94,7 @@ class PlayMulti(DQNMulti):
 
         return sum(
             episode.total_reward * (1 + total_laps[name])
-            for name, episode in crashed_episodes.items()
+            for name, episode in chain(crashed_episodes.items(), active_episodes.items())
         )
 
     def evaluate(self, tries: int = 3, max_laps: Optional[int] = None) -> float:
