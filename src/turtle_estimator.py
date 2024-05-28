@@ -40,11 +40,11 @@ class ModelResult(NamedTuple):
     signature: str
 
 
-def multithreaded_train(args: Tuple[int, Parameters, DQNParameters, bool]) -> ModelResult:
+def multithreaded_train(args: Tuple[int, Parameters, DQNParameters, bool, bool]) -> ModelResult:
     logger.info("Starting iteration %d", args[0])
 
     start = perf_counter()
-    result = train(args[1], args[2], args[3])
+    result = train(args[1], args[2], args[3], args[4])
     elapsed = perf_counter() - start
 
     logger.info(
@@ -56,7 +56,12 @@ def multithreaded_train(args: Tuple[int, Parameters, DQNParameters, bool]) -> Mo
     return result
 
 
-def train(parameters: Parameters, dqn_parameters: DQNParameters, multi: bool) -> ModelResult:
+def train(
+    parameters: Parameters,
+    dqn_parameters: DQNParameters,
+    multi: bool,
+    partial: bool = False,
+) -> ModelResult:
     signature = f"{parameters.signature()}_{dqn_parameters.signature()}"
     hash = sha256(signature.encode("ascii")).hexdigest()[:6]
 
@@ -67,7 +72,14 @@ def train(parameters: Parameters, dqn_parameters: DQNParameters, multi: bool) ->
     with create_simulator() as simulator:
         env = Environment(simulator, parameters=copy(parameters))
         env.setup("routes.csv", agent_limit=14 if multi else 1)
-        model = (PlayMulti if multi else PlaySingle)(env, parameters=dqn_parameters)
+        if multi:
+            model = PlayMulti(
+                env,
+                parameters=dqn_parameters,
+                episodes_without_collisions=2000 if partial else 0,
+            )
+        else:
+            model = PlaySingle(env, parameters=dqn_parameters)
         model.train(save_model=False, randomize_section=not multi)
 
         model.env.parameters.max_steps = 4_000
@@ -144,6 +156,12 @@ if __name__ == "__main__":
         help="seed for choosing parameters",
     )
     arg_parser.add_argument("-m", "--multi", action="store_true", help="multi-agent estimation")
+    arg_parser.add_argument(
+        "-p",
+        "--partial",
+        action="store_true",
+        help="run first half of episodes without collisions (only applicable with --multi)",
+    )
     arg_parser.add_argument("-v", "--verbose", action="store_true", help="enable debug logging")
     args = arg_parser.parse_args()
 
@@ -193,5 +211,6 @@ if __name__ == "__main__":
                 parameters_from_distributions,
                 dqn_parameters_from_distributions,
                 repeat(args.multi),
+                repeat(args.partial),
             ),
         )

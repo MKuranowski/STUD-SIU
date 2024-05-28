@@ -24,9 +24,14 @@ class DQNMulti(DQNSingle):
         env: Environment,
         parameters: DQNParameters = DQNParameters(),
         seed: int = 42,
-        signature_prefix: str = "dqnm",
+        signature_prefix: Optional[str] = None,
+        episodes_without_collisions: int = 0,
     ) -> None:
+        if signature_prefix is None:
+            signature_prefix = "dqnm" if episodes_without_collisions == 0 else "dqnp"
         super().__init__(env, parameters, seed, signature_prefix)
+        self.env.parameters.detect_collisions = episodes_without_collisions == 0
+        self.episodes_without_collisions = episodes_without_collisions
 
     def input_stacks(
         self,
@@ -181,6 +186,16 @@ class DQNMulti(DQNSingle):
                 return finished_episodes
 
         raise RuntimeError("itertools.count() should never terminate")
+
+    def increment_episode(self, save_model: bool = True) -> None:
+        super().increment_episode(save_model)
+        if (
+            self.episodes >= self.episodes_without_collisions
+            and not self.env.parameters.detect_collisions
+        ):
+            self.env.parameters.detect_collisions = True
+            self.replay_memory.clear()
+            self.epsilon = self.parameters.initial_epsilon
 
 
 if __name__ == "__main__":
