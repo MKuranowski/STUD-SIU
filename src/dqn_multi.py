@@ -30,8 +30,12 @@ class DQNMulti(DQNSingle):
         if signature_prefix is None:
             signature_prefix = "dqnm" if episodes_without_collisions == 0 else "dqnp"
         super().__init__(env, parameters, seed, signature_prefix)
-        self.env.parameters.detect_collisions = episodes_without_collisions == 0
-        self.episodes_without_collisions = episodes_without_collisions
+        if self.env.parameters.detect_collisions:
+            self.env.parameters.detect_collisions = episodes_without_collisions == 0
+            self.episodes_without_collisions = episodes_without_collisions
+        else:
+            assert self.env.parameters.detect_collisions is False
+            self.episodes_without_collisions = self.parameters.max_episodes + 696969
 
     def input_stacks(
         self,
