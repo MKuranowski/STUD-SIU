@@ -76,7 +76,8 @@ def train(
             model = PlayMulti(
                 env,
                 parameters=dqn_parameters,
-                episodes_without_collisions=2000 if partial else 0,
+                signature_prefix="dqnd",
+                episodes_without_collisions=3000 if partial else 0,
             )
         else:
             model = PlaySingle(env, parameters=dqn_parameters)
