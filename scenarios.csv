@@ -9,5 +9,5 @@ id,section_name,agents_no,start_left,start_right,start_bottom,start_top,goal_x,g
 2,lewiatan,1,1464,1494,729,654,1804,666
 1,aldi,1,1575,1605,199,124,1223,288
 2,aldi,1,1645,1675,199,124,1223,288
-1,kaufland,1,1190,1265,398,368,953,964
-2,kaufland,1,1190,1265,328,298,953,964
+1,kaufland,1,1190,1265,398,368,1228,756
+2,kaufland,1,1190,1265,328,298,1228,756
