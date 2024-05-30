@@ -93,7 +93,7 @@ class PlayMulti(DQNMulti):
                 crashed_episodes[name] = active_episodes.pop(name)
 
         return sum(
-            episode.total_reward * (1 + total_laps[name])
+            episode.total_reward * (1 + total_sections[name])
             for name, episode in chain(crashed_episodes.items(), active_episodes.items())
         )
 
