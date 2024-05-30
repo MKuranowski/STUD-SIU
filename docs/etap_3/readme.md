@@ -22,6 +22,10 @@ Zmieniliśmy tor w taki sposób, aby występowało na nim skrzyżowanie oraz dos
 |1|2|71.59|76.13|40.05|43.45|55.59|36|
 |1|2|54.09|57.5|31|35.54|55.82|14.73|
 
+## Kod źródłowy
+
+Kod źródłowy jest dostępny na repozytorium GitHub: <https://github.com/MKuranowski/STUD-SIU>,  
+oraz w obrazie Docker: <https://hub.docker.com/layers/bartlomiejkrawczyk/siu-20.04/ETAP_3/images/sha256-20b79a9dcfbb48f39bdae138a11113619b38a30612772b2da662cbf345dd67e4?context=explore>
 
 ## Dostosowanie do uczenia wieloagentowego
 
