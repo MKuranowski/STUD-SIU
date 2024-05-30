@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 class PlayMulti(DQNMulti):
     def play_until_crash(self, max_laps: Optional[int] = None) -> float:
-        self.env.setup("routes.csv", agent_limit=14)
+        self.env.setup("routes.csv")
         self.env.reset(randomize_section=False)
 
         active_episodes = {
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     with create_simulator() as simulator:
         coloredlogs.install(level=logging.DEBUG if args.verbose else logging.INFO)
         env = Environment(simulator, parameters=parameters)
-        env.setup("routes.csv", agent_limit=14)
+        env.setup("routes.csv")
         env.reset()
 
         play = PlayMulti(env)
