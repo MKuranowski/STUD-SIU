@@ -192,12 +192,12 @@ if __name__ == "__main__":
     parameters_distributions = {
         "grid_res": [7, 9],
         "cam_res": [200, 250, 300],
-        "reward_forward_rate": [1.0, 2.0, 4.0],
-        "reward_reverse_rate": [-10.0, -15.0, -20],
-        "reward_speeding_rate": [-10.0, -15.0, -20.0],
-        "reward_distance_rate": [4, 8, 16],
-        "out_of_track_fine": [-10.0, -15.0, -20.0],
-        "max_steps": [20, 40, 80],
+        "reward_forward_rate": [0.1, 0.5, 1.0],
+        "reward_reverse_rate": [-10.0, -15.0, -20.0],
+        "reward_speeding_rate": [-10.0, -15.0],
+        "reward_distance_rate": [4.0, 8.0, 16.0, 24.0, 32.0],
+        "out_of_track_fine": [-10.0, -20.0, 30.0],
+        "max_steps": [40, 60],
     }
     dqn_parameters_distributions = {
         "discount": [0.8, 0.85, 0.9],
