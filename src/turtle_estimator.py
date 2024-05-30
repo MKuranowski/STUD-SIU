@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 
 class ModelResult(NamedTuple):
     reward: float
+    prefix: str
     hash: str
     signature: str
 
@@ -87,7 +88,7 @@ def train(
         model.env.parameters.max_steps = 4_000
         reward = evaluate(path, simulator, parameters, multi)
 
-    result = ModelResult(reward, hash, signature)
+    result = ModelResult(reward, model.signature_prefix, hash, signature)
     save_result(result, multi)
     return result
 
@@ -132,7 +133,7 @@ def save_result(result: ModelResult, multi: bool = False) -> None:
 def load_models_csv(file: Path) -> Dict[str, ModelResult]:
     with file.open("r", encoding="ascii", newline="") as f:
         return {
-            i["signature"]: ModelResult(float(i["reward"]), i["hash"], i["signature"])
+            i["signature"]: ModelResult(float(i["reward"]), i["prefix"], i["hash"], i["signature"])
             for i in csv.DictReader(f)
         }
 
@@ -140,7 +141,7 @@ def load_models_csv(file: Path) -> Dict[str, ModelResult]:
 def save_models_csv(file: Path, results_by_signature: Dict[str, ModelResult]) -> None:
     with file.open("w", encoding="ascii", newline="") as f:
         w = csv.writer(f)
-        w.writerow(("reward", "hash", "signature"))
+        w.writerow(("reward", "prefix", "hash", "signature"))
         w.writerows(sorted(results_by_signature.values(), key=attrgetter("reward"), reverse=True))
 
 

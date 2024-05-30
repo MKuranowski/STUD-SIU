@@ -16,7 +16,7 @@ logger = logging.getLogger("dqnm_reevaluate")
 
 
 def reevaluate(model: Path, unknown_only: bool = False) -> None:
-    _, hash, signature = model.stem.split("-", maxsplit=2)
+    prefix, hash, signature = model.stem.split("-", maxsplit=2)
 
     if unknown_only and load_result_for_signature(signature, multi=True) is not None:
         return
@@ -36,7 +36,7 @@ def reevaluate(model: Path, unknown_only: bool = False) -> None:
         reward = play.evaluate(max_laps=4)
 
     print(f"{hash} - finished, reward: {reward:.3f}")
-    save_result(ModelResult(reward, hash, signature), multi=True)
+    save_result(ModelResult(reward, prefix, hash, signature), multi=True)
 
 
 if __name__ == "__main__":
