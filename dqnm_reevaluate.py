@@ -30,7 +30,7 @@ def reevaluate(model: Path, unknown_only: bool = False) -> None:
 
     with create_simulator() as simulator:
         env = Environment(simulator, parameters)
-        env.setup("routes.csv", agent_limit=14)
+        env.setup("routes.csv")
         play = PlayMulti(env)
         play.load_model(model)
         reward = play.evaluate(max_laps=4)
